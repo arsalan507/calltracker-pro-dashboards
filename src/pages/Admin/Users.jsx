@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { 
   UsersIcon, 
@@ -21,7 +21,6 @@ import {
 } from '@heroicons/react/24/outline';
 import { Card, Button, Input, Modal } from '../../components/common';
 import { userService } from '../../services/userService';
-import { organizationService } from '../../services/organizationService';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -38,7 +37,7 @@ const Users = () => {
   const [organizations, setOrganizations] = useState([]);
   const { user } = useAuth();
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
       try {
         let usersResponse;
         
@@ -96,7 +95,7 @@ const Users = () => {
       } finally {
         setLoading(false);
       }
-    };
+    }, [user]);
 
   const refreshUsers = async () => {
     setLoading(true);
@@ -107,7 +106,7 @@ const Users = () => {
     if (user) {
       fetchUsers();
     }
-  }, [user]);
+  }, [user, fetchUsers]);
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
