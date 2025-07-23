@@ -11,6 +11,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { Button, Input, Card } from '../common';
 import toast from 'react-hot-toast';
+import { registrationService } from '../../services/registrationService';
 
 const Contact = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -20,7 +21,7 @@ const Contact = () => {
     {
       icon: PhoneIcon,
       title: 'Phone Support',
-      details: '+1 (555) 123-4567',
+      details: '+91 8660310638',
       subtitle: 'Available 24/7 for Enterprise customers'
     },
     {
@@ -32,13 +33,13 @@ const Contact = () => {
     {
       icon: MapPinIcon,
       title: 'Headquarters',
-      details: 'San Francisco, CA',
+      details: 'Bengaluru, KA',
       subtitle: 'Global offices in 12+ countries'
     },
     {
       icon: ClockIcon,
       title: 'Business Hours',
-      details: 'Mon-Fri: 9AM-6PM PST',
+      details: 'Mon-Fri: 9AM-6PM IST',
       subtitle: 'Emergency support available 24/7'
     }
   ];
@@ -70,16 +71,12 @@ const Contact = () => {
   const onSubmit = async (data) => {
     setIsSubmitting(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Here you would typically send the data to your backend
-      console.log('Form submitted:', data);
-      
+      await registrationService.sendContactMessage(data);
       toast.success('Message sent successfully! We\'ll get back to you soon.');
       reset();
     } catch (error) {
-      toast.error('Failed to send message. Please try again.');
+      console.error('Contact form error:', error);
+      toast.error(error.message || 'Failed to send message. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

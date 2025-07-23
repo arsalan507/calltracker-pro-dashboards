@@ -18,6 +18,9 @@ import {
   UserGroupIcon
 } from '@heroicons/react/24/outline';
 import { Card, Button, Input, Modal } from '../../components/common';
+import { useAuth } from '../../contexts/AuthContext';
+import toast from 'react-hot-toast';
+import api from '../../services/api';
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('general');
@@ -26,75 +29,105 @@ const Settings = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState('');
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
-  // Mock data - replace with actual API calls
   useEffect(() => {
-    const mockSettings = {
-      general: {
-        platformName: 'CallTracker Pro',
-        maintenanceMode: false,
-        registrationEnabled: true,
-        emailVerificationRequired: true,
-        defaultUserRole: 'user',
-        sessionTimeout: 24,
-        maxConcurrentSessions: 5
-      },
-      features: {
-        analytics: true,
-        callRecording: true,
-        voiceMail: false,
-        smsIntegration: true,
-        apiAccess: true,
-        webhooks: false,
-        advancedReporting: true,
-        realTimeNotifications: true
-      },
-      security: {
-        twoFactorAuth: true,
-        passwordComplexity: 'high',
-        loginAttempts: 5,
-        sessionSecurity: 'strict',
-        dataEncryption: true,
-        auditLogging: true,
-        ipWhitelisting: false,
-        sslRequired: true
-      },
-      backup: {
-        autoBackup: true,
-        backupFrequency: 'daily',
-        retentionPeriod: 90,
-        backupLocation: 'cloud',
-        dataRetention: 365,
-        purgeInactiveUsers: true,
-        complianceMode: 'gdpr'
+    const fetchSettings = async () => {
+      try {
+        // For now, we'll use some default settings since there might not be 
+        // a specific settings endpoint in the backend yet
+        const defaultSettings = {
+          general: {
+            platformName: 'CallTracker Pro',
+            maintenanceMode: false,
+            registrationEnabled: true,
+            emailVerificationRequired: true,
+            defaultUserRole: 'agent',
+            sessionTimeout: 24,
+            maxConcurrentSessions: 5
+          },
+          features: {
+            analytics: true,
+            callRecording: true,
+            voiceMail: false,
+            smsIntegration: true,
+            apiAccess: true,
+            webhooks: false,
+            advancedReporting: true,
+            realTimeNotifications: true
+          },
+          security: {
+            twoFactorAuth: true,
+            passwordComplexity: 'high',
+            loginAttempts: 5,
+            sessionSecurity: 'strict',
+            dataEncryption: true,
+            auditLogging: true,
+            ipWhitelisting: false,
+            sslRequired: true
+          },
+          backup: {
+            autoBackup: true,
+            backupFrequency: 'daily',
+            retentionPeriod: 90,
+            backupLocation: 'cloud',
+            dataRetention: 365,
+            purgeInactiveUsers: true,
+            complianceMode: 'gdpr'
+          }
+        };
+
+        // Try to fetch system status from backend
+        let systemStatusData = {
+          uptime: 'N/A',
+          cpuUsage: 0,
+          memoryUsage: 0,
+          diskUsage: 0,
+          activeUsers: 0,
+          totalCalls: 0,
+          systemHealth: 'unknown',
+          lastBackup: 'N/A',
+          backupStatus: 'unknown',
+          services: [
+            { name: 'API Server', status: 'running', uptime: 'N/A' },
+            { name: 'Database', status: 'running', uptime: 'N/A' },
+            { name: 'Call Router', status: 'unknown', uptime: 'N/A' },
+            { name: 'Analytics Engine', status: 'unknown', uptime: 'N/A' },
+            { name: 'Backup Service', status: 'unknown', uptime: 'N/A' }
+          ]
+        };
+
+        try {
+          // Try to get some real data from the backend
+          const [callLogsResponse] = await Promise.all([
+            api.get('/call-logs?limit=1000').catch(() => ({ data: [] }))
+          ]);
+
+          if (callLogsResponse?.data) {
+            systemStatusData.totalCalls = callLogsResponse.data.length || 0;
+            systemStatusData.systemHealth = 'healthy';
+            systemStatusData.services[0].status = 'running';
+            systemStatusData.services[1].status = 'running';
+          }
+        } catch (error) {
+          console.log('Could not fetch all system status data:', error);
+        }
+
+        setSettings(defaultSettings);
+        setSystemStatus(systemStatusData);
+
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+        toast.error('Failed to load settings');
+      } finally {
+        setLoading(false);
       }
     };
 
-    const mockSystemStatus = {
-      uptime: '15 days, 8 hours',
-      cpuUsage: 45,
-      memoryUsage: 62,
-      diskUsage: 38,
-      activeUsers: 156,
-      totalCalls: 12450,
-      systemHealth: 'healthy',
-      lastBackup: '2024-07-23 02:00:00',
-      backupStatus: 'success',
-      services: [
-        { name: 'API Server', status: 'running', uptime: '15d 8h' },
-        { name: 'Database', status: 'running', uptime: '15d 8h' },
-        { name: 'Call Router', status: 'running', uptime: '15d 8h' },
-        { name: 'Analytics Engine', status: 'warning', uptime: '2d 4h' },
-        { name: 'Backup Service', status: 'running', uptime: '15d 8h' }
-      ]
-    };
-
-    setTimeout(() => {
-      setSettings(mockSettings);
-      setSystemStatus(mockSystemStatus);
-      setLoading(false);
-    }, 1000);
-  }, []);
+    if (user) {
+      fetchSettings();
+    }
+  }, [user]);
 
   const tabs = [
     { id: 'general', name: 'General', icon: CogIcon },

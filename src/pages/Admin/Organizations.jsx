@@ -12,6 +12,9 @@ import {
   Cog6ToothIcon
 } from '@heroicons/react/24/outline';
 import { Card, Button, Input, Modal } from '../../components/common';
+import { organizationService } from '../../services/organizationService';
+import { useAuth } from '../../contexts/AuthContext';
+import toast from 'react-hot-toast';
 
 const Organizations = () => {
   const [organizations, setOrganizations] = useState([]);
@@ -22,53 +25,34 @@ const Organizations = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState('');
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
-  // Mock data - replace with actual API calls
   useEffect(() => {
-    const mockOrganizations = [
-      {
-        id: 1,
-        name: 'Acme Corporation',
-        domain: 'acme.com',
-        status: 'active',
-        plan: 'enterprise',
-        users: 45,
-        billing: { amount: 999, currency: 'USD', period: 'monthly' },
-        createdAt: '2024-01-15',
-        lastActive: '2024-07-20',
-        settings: { notifications: true, analytics: true, api: true }
-      },
-      {
-        id: 2,
-        name: 'TechStart Inc',
-        domain: 'techstart.io',
-        status: 'active',
-        plan: 'professional',
-        users: 12,
-        billing: { amount: 299, currency: 'USD', period: 'monthly' },
-        createdAt: '2024-03-10',
-        lastActive: '2024-07-22',
-        settings: { notifications: true, analytics: false, api: true }
-      },
-      {
-        id: 3,
-        name: 'Global Solutions',
-        domain: 'globalsol.com',
-        status: 'suspended',
-        plan: 'basic',
-        users: 8,
-        billing: { amount: 99, currency: 'USD', period: 'monthly' },
-        createdAt: '2024-02-20',
-        lastActive: '2024-07-18',
-        settings: { notifications: false, analytics: false, api: false }
+    const fetchOrganizations = async () => {
+      try {
+        if (user?.organizationId) {
+          // If user belongs to a specific organization, fetch that one
+          const orgResponse = await organizationService.getOrganization(user.organizationId);
+          setOrganizations([orgResponse]);
+        } else {
+          // Super admin - should fetch all organizations (this endpoint might not exist yet)
+          // For now, we'll show a message that this is a super admin view
+          setOrganizations([]);
+          toast.info('Super admin view - Organization management coming soon');
+        }
+      } catch (error) {
+        console.error('Error fetching organizations:', error);
+        toast.error('Failed to load organizations');
+        setOrganizations([]);
+      } finally {
+        setLoading(false);
       }
-    ];
-    
-    setTimeout(() => {
-      setOrganizations(mockOrganizations);
-      setLoading(false);
-    }, 1000);
-  }, []);
+    };
+
+    if (user) {
+      fetchOrganizations();
+    }
+  }, [user]);
 
   const filteredOrganizations = organizations.filter(org => {
     const matchesSearch = org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

@@ -3,28 +3,14 @@ import api from './api';
 export const authService = {
   async login(credentials) {
     try {
-      // Mock authentication - replace with real API call when backend is ready
-      if (credentials.email && credentials.password) {
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Mock successful response
-        const mockResponse = {
-          token: 'mock-jwt-token-' + Date.now(),
-          user: {
-            id: 1,
-            name: 'Super Admin',
-            email: credentials.email,
-            role: 'super_admin'
-          }
-        };
-        
-        localStorage.setItem('authToken', mockResponse.token);
-        localStorage.setItem('user', JSON.stringify(mockResponse.user));
-        
-        return mockResponse;
+      const response = await api.post('/auth/login', credentials);
+      
+      if (response.token && response.user) {
+        localStorage.setItem('authToken', response.token);
+        localStorage.setItem('user', JSON.stringify(response.user));
+        return response;
       } else {
-        throw new Error('Email and password are required');
+        throw new Error('Invalid response from server');
       }
     } catch (error) {
       throw error;
@@ -33,8 +19,7 @@ export const authService = {
 
   async logout() {
     try {
-      // Mock logout - replace with real API call when backend is ready
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await api.post('/auth/logout');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {

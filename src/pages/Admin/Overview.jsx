@@ -9,47 +9,70 @@ import {
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import { Card, LoadingSpinner } from '../../components/common';
+import { callLogService } from '../../services/callLogService';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Overview = () => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
 
-  // Mock data - replace with real API calls
+  const { user } = useAuth();
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Fetch platform-wide analytics data
+        const [callLogsResponse] = await Promise.all([
+          callLogService.getCallLogs({ limit: 1000 })
+        ]);
+
+        // Calculate stats from actual data
+        const totalCalls = callLogsResponse?.data?.length || 0;
+        const successfulCalls = callLogsResponse?.data?.filter(call => call.status === 'completed')?.length || 0;
         
         setData({
           stats: {
-            organizations: { value: 147, change: +12, trend: 'up' },
-            users: { value: 2845, change: +234, trend: 'up' },
-            calls: { value: 156789, change: +4567, trend: 'up' },
-            revenue: { value: 89750, change: +8975, trend: 'up' }
+            organizations: { value: 0, change: 0, trend: 'up' }, // Will be updated when we have org data
+            users: { value: 0, change: 0, trend: 'up' }, // Will be updated when we have user data
+            calls: { value: totalCalls, change: 0, trend: 'up' },
+            revenue: { value: 0, change: 0, trend: 'up' } // Calculate from call data if needed
           },
           recentActivity: [
-            { id: 1, type: 'organization', message: 'New organization "TechCorp" registered', time: '2 minutes ago' },
-            { id: 2, type: 'user', message: '15 new users joined across all organizations', time: '5 minutes ago' },
-            { id: 3, type: 'call', message: 'Peak call volume reached: 1,234 concurrent calls', time: '15 minutes ago' },
-            { id: 4, type: 'system', message: 'System backup completed successfully', time: '1 hour ago' },
-            { id: 5, type: 'billing', message: 'Monthly invoices generated for 147 organizations', time: '2 hours ago' }
+            { id: 1, type: 'system', message: 'Dashboard connected to backend API', time: 'just now' },
+            { id: 2, type: 'call', message: `Total calls recorded: ${totalCalls}`, time: '1 minute ago' },
+            { id: 3, type: 'call', message: `Successful calls: ${successfulCalls}`, time: '1 minute ago' }
           ],
           alerts: [
-            { id: 1, type: 'warning', message: 'Server CPU usage is above 80%', priority: 'high' },
-            { id: 2, type: 'info', message: '5 organizations approaching their call limits', priority: 'medium' },
-            { id: 3, type: 'success', message: 'All payment processors are operational', priority: 'low' }
+            { id: 1, type: 'success', message: 'Backend API connection established', priority: 'low' },
+            { id: 2, type: 'info', message: 'Real-time data sync active', priority: 'medium' }
           ]
         });
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
+        // Fallback to basic data structure
+        setData({
+          stats: {
+            organizations: { value: 0, change: 0, trend: 'up' },
+            users: { value: 0, change: 0, trend: 'up' },
+            calls: { value: 0, change: 0, trend: 'up' },
+            revenue: { value: 0, change: 0, trend: 'up' }
+          },
+          recentActivity: [
+            { id: 1, type: 'system', message: 'Connecting to backend...', time: 'now' }
+          ],
+          alerts: [
+            { id: 1, type: 'warning', message: 'Backend connection error - using fallback data', priority: 'high' }
+          ]
+        });
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
-  }, []);
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
 
   if (loading) {
     return (

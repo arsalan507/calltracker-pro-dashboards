@@ -73,7 +73,7 @@ const Hero = () => {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12"
+          className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-20"
         >
           <Button 
             size="lg" 
@@ -86,7 +86,7 @@ const Hero = () => {
           <Button 
             size="lg" 
             variant="outline"
-            className="min-w-[200px] border-white text-white hover:bg-white hover:text-gray-900"
+            className="min-w-[200px] border-white text-white hover:bg-white hover:text-gray-900 flex items-center justify-center"
             onClick={() => scrollToSection('features')}
           >
             <PlayIcon className="w-5 h-5 mr-2" />
@@ -99,7 +99,7 @@ const Hero = () => {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto"
+          className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto mb-16"
         >
           {stats.map((stat, index) => (
             <motion.div

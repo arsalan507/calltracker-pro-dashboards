@@ -20,6 +20,10 @@ import {
   XCircleIcon
 } from '@heroicons/react/24/outline';
 import { Card, Button, Input, Modal } from '../../components/common';
+import { userService } from '../../services/userService';
+import { organizationService } from '../../services/organizationService';
+import { useAuth } from '../../contexts/AuthContext';
+import toast from 'react-hot-toast';
 
 const Users = () => {
   const [users, setUsers] = useState([]);
@@ -31,127 +35,79 @@ const Users = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState('');
   const [loading, setLoading] = useState(true);
+  const [organizations, setOrganizations] = useState([]);
+  const { user } = useAuth();
 
-  // Mock data - replace with actual API calls
-  useEffect(() => {
-    const mockUsers = [
-      {
-        id: 1,
-        name: 'John Doe',
-        email: 'john.doe@acme.com',
-        phone: '+1 (555) 123-4567',
-        avatar: null,
-        status: 'active',
-        role: 'admin',
-        organization: 'Acme Corporation',
-        organizationId: 1,
-        joinedAt: '2024-01-15',
-        lastActive: '2024-07-23 10:30',
-        loginCount: 245,
-        permissions: ['users.read', 'users.write', 'organizations.read', 'organizations.write', 'analytics.read'],
-        activity: {
-          sessionsToday: 3,
-          avgSessionTime: '2h 15m',
-          totalCalls: 1250,
-          lastLogin: '2024-07-23 10:30'
-        },
-        analytics: {
-          callsThisMonth: 89,
-          successRate: 78,
-          avgCallDuration: '8m 45s',
-          conversionRate: 15.2
+  const fetchUsers = async () => {
+      try {
+        let usersResponse;
+        
+        if (user?.role === 'super_admin') {
+          // Super admin can see all users
+          usersResponse = await userService.getAllUsers();
+        } else if (user?.organizationId) {
+          // Organization admin sees only their org users
+          usersResponse = await userService.getOrganizationUsers(user.organizationId);
+        } else {
+          setUsers([]);
+          setLoading(false);
+          return;
         }
-      },
-      {
-        id: 2,
-        name: 'Jane Smith',
-        email: 'jane.smith@techstart.io',
-        phone: '+1 (555) 234-5678',
-        avatar: null,
-        status: 'active',
-        role: 'manager',
-        organization: 'TechStart Inc',
-        organizationId: 2,
-        joinedAt: '2024-02-20',
-        lastActive: '2024-07-22 16:45',
-        loginCount: 156,
-        permissions: ['users.read', 'organizations.read', 'analytics.read'],
-        activity: {
-          sessionsToday: 2,
-          avgSessionTime: '1h 45m',
-          totalCalls: 875,
-          lastLogin: '2024-07-22 16:45'
-        },
-        analytics: {
-          callsThisMonth: 67,
-          successRate: 82,
-          avgCallDuration: '7m 30s',
-          conversionRate: 18.5
-        }
-      },
-      {
-        id: 3,
-        name: 'Bob Johnson',
-        email: 'bob.johnson@globalsol.com',
-        phone: '+1 (555) 345-6789',
-        avatar: null,
-        status: 'suspended',
-        role: 'user',
-        organization: 'Global Solutions',
-        organizationId: 3,
-        joinedAt: '2024-03-10',
-        lastActive: '2024-07-18 14:20',
-        loginCount: 89,
-        permissions: ['analytics.read'],
-        activity: {
-          sessionsToday: 0,
-          avgSessionTime: '45m',
-          totalCalls: 320,
-          lastLogin: '2024-07-18 14:20'
-        },
-        analytics: {
-          callsThisMonth: 12,
-          successRate: 65,
-          avgCallDuration: '6m 15s',
-          conversionRate: 8.7
-        }
-      },
-      {
-        id: 4,
-        name: 'Alice Wilson',
-        email: 'alice.wilson@acme.com',
-        phone: '+1 (555) 456-7890',
-        avatar: null,
-        status: 'pending',
-        role: 'user',
-        organization: 'Acme Corporation',
-        organizationId: 1,
-        joinedAt: '2024-07-20',
-        lastActive: null,
-        loginCount: 0,
-        permissions: [],
-        activity: {
-          sessionsToday: 0,
-          avgSessionTime: '0m',
-          totalCalls: 0,
-          lastLogin: null
-        },
-        analytics: {
-          callsThisMonth: 0,
-          successRate: 0,
-          avgCallDuration: '0m',
-          conversionRate: 0
-        }
+
+        // Transform backend user data to match frontend structure
+        const transformedUsers = usersResponse?.data?.map(backendUser => ({
+          id: backendUser._id,
+          name: backendUser.fullName || `${backendUser.firstName} ${backendUser.lastName}`,
+          email: backendUser.email,
+          phone: backendUser.phone || 'Not provided',
+          avatar: backendUser.avatar,
+          status: backendUser.isActive ? 'active' : 'suspended',
+          role: backendUser.role,
+          organization: backendUser.organizationId?.name || 'Unknown',
+          organizationId: backendUser.organizationId?._id,
+          joinedAt: new Date(backendUser.createdAt).toLocaleDateString(),
+          lastActive: backendUser.lastLoginAt ? new Date(backendUser.lastLoginAt).toLocaleString() : null,
+          loginCount: backendUser.loginHistory?.length || 0,
+          permissions: Object.keys(backendUser.permissions || {}).filter(key => backendUser.permissions[key]),
+          activity: {
+            sessionsToday: 0, // This would need to be calculated from session data
+            avgSessionTime: 'N/A',
+            totalCalls: 0, // This would come from call logs
+            lastLogin: backendUser.lastLoginAt
+          },
+          analytics: {
+            callsThisMonth: 0, // This would be calculated from call logs
+            successRate: 0,
+            avgCallDuration: '0m',
+            conversionRate: 0
+          }
+        })) || [];
+
+        setUsers(transformedUsers);
+
+        // Extract unique organizations
+        const uniqueOrgs = [...new Set(transformedUsers.map(u => u.organization))].filter(Boolean);
+        setOrganizations(uniqueOrgs);
+
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        toast.error('Failed to load users');
+        setUsers([]);
+      } finally {
+        setLoading(false);
       }
-    ];
-    
-    setTimeout(() => {
-      setUsers(mockUsers);
-      setLoading(false);
-    }, 1000);
-  }, []);
+    };
 
-  const organizations = ['Acme Corporation', 'TechStart Inc', 'Global Solutions'];
+  const refreshUsers = async () => {
+    setLoading(true);
+    await fetchUsers();
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchUsers();
+    }
+  }, [user]);
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -190,14 +146,16 @@ const Users = () => {
 
   const getRoleBadge = (role) => {
     const roleColors = {
-      admin: 'bg-purple-100 text-purple-800',
+      super_admin: 'bg-red-100 text-red-800',
+      org_admin: 'bg-purple-100 text-purple-800',
       manager: 'bg-blue-100 text-blue-800',
-      user: 'bg-gray-100 text-gray-800'
+      agent: 'bg-green-100 text-green-800',
+      viewer: 'bg-gray-100 text-gray-800'
     };
     
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${roleColors[role]}`}>
-        {role.charAt(0).toUpperCase() + role.slice(1)}
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${roleColors[role] || 'bg-gray-100 text-gray-800'}`}>
+        {role?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Unknown'}
       </span>
     );
   };
@@ -323,9 +281,11 @@ const Users = () => {
               className="input-field"
             >
               <option value="all">All Roles</option>
-              <option value="admin">Admin</option>
+              <option value="super_admin">Super Admin</option>
+              <option value="org_admin">Org Admin</option>
               <option value="manager">Manager</option>
-              <option value="user">User</option>
+              <option value="agent">Agent</option>
+              <option value="viewer">Viewer</option>
             </select>
             <select
               value={organizationFilter}
@@ -506,18 +466,23 @@ const Users = () => {
         }
         size={modalType === 'analytics' || modalType === 'activity' ? 'xl' : 'lg'}
       >
-        <ModalContent modalType={modalType} user={selectedUser} />
+        <ModalContent 
+          modalType={modalType} 
+          user={selectedUser} 
+          onClose={() => setIsModalOpen(false)}
+          onSuccess={refreshUsers}
+        />
       </Modal>
     </div>
   );
 };
 
 // Modal Content Component
-const ModalContent = ({ modalType, user }) => {
+const ModalContent = ({ modalType, user, onClose, onSuccess }) => {
   switch (modalType) {
     case 'create':
     case 'edit':
-      return <UserForm user={user} isEdit={modalType === 'edit'} />;
+      return <UserForm user={user} isEdit={modalType === 'edit'} onClose={onClose} onSuccess={onSuccess} />;
     case 'view':
       return <UserDetails user={user} />;
     case 'activity':
@@ -527,25 +492,64 @@ const ModalContent = ({ modalType, user }) => {
     case 'analytics':
       return <UserAnalytics user={user} />;
     case 'delete':
-      return <DeleteConfirmation user={user} />;
+      return <DeleteConfirmation user={user} onClose={onClose} onSuccess={onSuccess} />;
     default:
       return null;
   }
 };
 
 // User Form Component
-const UserForm = ({ user, isEdit }) => {
+const UserForm = ({ user, isEdit, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
     phone: user?.phone || '',
-    role: user?.role || 'user',
+    role: user?.role || 'agent',
     status: user?.status || 'active',
     organization: user?.organization || ''
   });
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      if (isEdit) {
+        // Update existing user
+        await userService.updateUser(user.id, {
+          fullName: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          role: formData.role,
+          isActive: formData.status === 'active'
+        });
+        toast.success('User updated successfully');
+      } else {
+        // Create new user
+        await userService.createUser({
+          fullName: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          role: formData.role,
+          isActive: formData.status === 'active',
+          password: 'TempPassword123!' // You might want to generate this or let user set it
+        });
+        toast.success('User created successfully');
+      }
+      
+      onSuccess(); // Refresh the users list
+      onClose(); // Close the modal
+    } catch (error) {
+      console.error('Error saving user:', error);
+      toast.error(error.message || `Failed to ${isEdit ? 'update' : 'create'} user`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <Input
         label="Full Name"
         value={formData.name}
@@ -570,10 +574,12 @@ const UserForm = ({ user, isEdit }) => {
           value={formData.role}
           onChange={(e) => setFormData({ ...formData, role: e.target.value })}
           className="input-field"
+          required
         >
-          <option value="user">User</option>
+          <option value="agent">Agent</option>
           <option value="manager">Manager</option>
-          <option value="admin">Admin</option>
+          <option value="org_admin">Org Admin</option>
+          <option value="viewer">Viewer</option>
         </select>
       </div>
       <div>
@@ -582,23 +588,21 @@ const UserForm = ({ user, isEdit }) => {
           value={formData.status}
           onChange={(e) => setFormData({ ...formData, status: e.target.value })}
           className="input-field"
+          required
         >
           <option value="active">Active</option>
           <option value="suspended">Suspended</option>
-          <option value="pending">Pending</option>
         </select>
       </div>
-      <Input
-        label="Organization"
-        value={formData.organization}
-        onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
-        required
-      />
       <Modal.Footer>
-        <Button variant="ghost">Cancel</Button>
-        <Button>{isEdit ? 'Update' : 'Create'} User</Button>
+        <Button type="button" variant="ghost" onClick={onClose} disabled={loading}>
+          Cancel
+        </Button>
+        <Button type="submit" loading={loading} disabled={loading}>
+          {loading ? 'Saving...' : (isEdit ? 'Update' : 'Create')} User
+        </Button>
       </Modal.Footer>
-    </div>
+    </form>
   );
 };
 
@@ -802,27 +806,55 @@ const UserAnalytics = ({ user }) => (
 );
 
 // Delete Confirmation Component
-const DeleteConfirmation = ({ user }) => (
-  <div className="space-y-4">
-    <div className="text-center">
-      <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-        <TrashIcon className="h-6 w-6 text-red-600" />
-      </div>
-      <div className="mt-3">
-        <h3 className="text-lg font-medium text-gray-900">Delete User</h3>
-        <div className="mt-2">
-          <p className="text-sm text-gray-500">
-            Are you sure you want to delete <strong>{user?.name}</strong>? 
-            This action cannot be undone and will permanently remove all associated data.
-          </p>
+const DeleteConfirmation = ({ user, onClose, onSuccess }) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleDelete = async () => {
+    setLoading(true);
+    try {
+      await userService.deleteUser(user.id);
+      toast.success('User deleted successfully');
+      onSuccess(); // Refresh the users list
+      onClose(); // Close the modal
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error(error.message || 'Failed to delete user');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="text-center">
+        <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+          <TrashIcon className="h-6 w-6 text-red-600" />
+        </div>
+        <div className="mt-3">
+          <h3 className="text-lg font-medium text-gray-900">Delete User</h3>
+          <div className="mt-2">
+            <p className="text-sm text-gray-500">
+              Are you sure you want to delete <strong>{user?.name}</strong>? 
+              This action cannot be undone and will permanently remove all associated data.
+            </p>
+          </div>
         </div>
       </div>
+      <Modal.Footer>
+        <Button variant="ghost" onClick={onClose} disabled={loading}>
+          Cancel
+        </Button>
+        <Button 
+          variant="danger" 
+          onClick={handleDelete} 
+          loading={loading}
+          disabled={loading}
+        >
+          {loading ? 'Deleting...' : 'Delete User'}
+        </Button>
+      </Modal.Footer>
     </div>
-    <Modal.Footer>
-      <Button variant="ghost">Cancel</Button>
-      <Button variant="danger">Delete User</Button>
-    </Modal.Footer>
-  </div>
-);
+  );
+};
 
 export default Users;
