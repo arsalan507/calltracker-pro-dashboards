@@ -51,9 +51,11 @@ const Header = () => {
             className="flex items-center cursor-pointer"
             onClick={() => scrollToSection('home')}
           >
-            <div className="bg-primary-gradient p-2 rounded-lg mr-3">
-              <div className="w-6 h-6 bg-white rounded"></div>
-            </div>
+            <img 
+              src="/logolanding.png" 
+              alt="CallTracker Pro Logo" 
+              className="w-14 h-14 object-contain mr-3"
+            />
             <span className={`text-xl font-bold ${
               isScrolled ? 'text-gray-900' : 'text-white'
             }`}>
