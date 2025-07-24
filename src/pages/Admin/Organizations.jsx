@@ -163,6 +163,25 @@ const Organizations = () => {
                 console.log('  - Token preview:', authToken ? `${authToken.substring(0, 10)}...` : 'None');
                 console.log('  - User data:', userData ? JSON.parse(userData) : 'No user data');
                 
+                // Decode JWT token to see its contents (without verification)
+                if (authToken) {
+                  try {
+                    const tokenParts = authToken.split('.');
+                    if (tokenParts.length === 3) {
+                      const payload = JSON.parse(atob(tokenParts[1]));
+                      console.log('🔍 JWT Token Payload:', payload);
+                      console.log('  - User ID:', payload.id || payload.userId || payload.sub);
+                      console.log('  - Role:', payload.role);
+                      console.log('  - Email:', payload.email);
+                      console.log('  - Issued at:', payload.iat ? new Date(payload.iat * 1000) : 'Not set');
+                      console.log('  - Expires at:', payload.exp ? new Date(payload.exp * 1000) : 'Not set');
+                      console.log('  - Is expired:', payload.exp ? (payload.exp * 1000 < Date.now()) : 'Unknown');
+                    }
+                  } catch (decodeError) {
+                    console.error('❌ Error decoding JWT token:', decodeError);
+                  }
+                }
+                
                 if (!authToken) {
                   toast.error('❌ No authentication token found!');
                   return;
