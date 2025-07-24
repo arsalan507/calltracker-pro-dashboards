@@ -152,29 +152,64 @@ const Organizations = () => {
             <Button
               variant="ghost"
               onClick={async () => {
-                console.log('🧪 Starting comprehensive API test...');
+                console.log('🧪 Starting comprehensive API and Auth test...');
                 
-                // Test 1: Direct fetch (bypass axios)
+                // Test 1: Check authentication
+                const authToken = localStorage.getItem('authToken');
+                const userData = localStorage.getItem('user');
+                console.log('🔐 Auth Debug:');
+                console.log('  - Token exists:', !!authToken);
+                console.log('  - Token length:', authToken?.length || 0);
+                console.log('  - Token preview:', authToken ? `${authToken.substring(0, 10)}...` : 'None');
+                console.log('  - User data:', userData ? JSON.parse(userData) : 'No user data');
+                
+                if (!authToken) {
+                  toast.error('❌ No authentication token found!');
+                  return;
+                }
+                
+                // Test 2: Direct fetch health check
                 try {
-                  console.log('🧪 Test 1: Direct fetch test');
+                  console.log('🧪 Test 1: Health check');
                   const directResponse = await fetch('https://calltrackerpro-backend.vercel.app/health');
                   const directData = await directResponse.json();
-                  console.log('✅ Direct fetch successful:', directData);
-                  toast.success('✅ Backend connection successful via direct fetch!');
+                  console.log('✅ Health check successful:', directData);
+                  toast.success('✅ Backend server is healthy!');
                 } catch (directError) {
-                  console.error('❌ Direct fetch failed:', directError);
-                  toast.error('❌ Direct fetch failed: ' + directError.message);
-                  return; // Stop here if direct fetch fails
+                  console.error('❌ Health check failed:', directError);
+                  toast.error('❌ Health check failed: ' + directError.message);
+                  return;
                 }
 
-                // Test 2: Axios test
+                // Test 3: Test authentication with super admin endpoint
                 try {
-                  console.log('🧪 Test 2: Axios API test');
-                  await organizationService.testConnection();
-                  toast.success('✅ Backend connection successful!');
+                  console.log('🧪 Test 2: Super admin endpoint test');
+                  const response = await fetch('https://calltrackerpro-backend.vercel.app/api/super-admin/organizations', {
+                    method: 'GET',
+                    headers: {
+                      'Authorization': `Bearer ${authToken}`,
+                      'Content-Type': 'application/json'
+                    }
+                  });
+                  
+                  console.log('📡 Super admin response status:', response.status);
+                  const responseText = await response.text();
+                  console.log('📡 Super admin response body:', responseText);
+                  
+                  if (response.status === 200) {
+                    toast.success('✅ Authentication successful!');
+                  } else if (response.status === 401) {
+                    toast.error('❌ Authentication failed - token invalid');
+                  } else if (response.status === 403) {
+                    toast.error('❌ Access denied - insufficient permissions');
+                  } else if (response.status === 500) {
+                    toast.error('❌ Server authentication error - check backend logs');
+                  } else {
+                    toast.error(`❌ Unexpected response: ${response.status}`);
+                  }
                 } catch (error) {
-                  console.error('❌ Axios test failed:', error);
-                  toast.error('❌ Backend connection failed: ' + (error.message || 'Unknown error'));
+                  console.error('❌ Super admin test failed:', error);
+                  toast.error('❌ Super admin test failed: ' + error.message);
                 }
               }}
               className="flex items-center space-x-2"

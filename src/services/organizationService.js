@@ -7,15 +7,12 @@ export const organizationService = {
     try {
       console.log('🔍 Testing API connection...');
       console.log('🔍 API Base URL:', process.env.REACT_APP_API_URL || 'Not set');
-      console.log('🔍 Full URL will be:', `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/`);
       
       // Test with a direct fetch first to bypass our axios interceptors
       try {
         console.log('🔍 Testing with direct fetch...');
         // The health endpoint is at the root, not under /api
-        const healthUrl = process.env.REACT_APP_API_URL ? 
-          `${process.env.REACT_APP_API_URL}/health` : 
-          'http://localhost:5000/health';
+        const healthUrl = 'https://calltrackerpro-backend.vercel.app/health';
         console.log('🔍 Testing health URL:', healthUrl);
         const directResponse = await fetch(healthUrl);
         
@@ -23,7 +20,8 @@ export const organizationService = {
           console.warn('⚠️ Health endpoint not available (404) - this is expected if not implemented');
           // Try a super admin endpoint instead to test connectivity
           console.log('🔍 Testing super admin endpoint instead...');
-          const testUrl = `${process.env.REACT_APP_API_URL}/api/super-admin/organizations`;
+          const testUrl = 'https://calltrackerpro-backend.vercel.app/api/super-admin/organizations';
+          console.log('🔍 Testing URL:', testUrl);
           const testResponse = await fetch(testUrl, {
             method: 'GET',
             headers: {
@@ -31,36 +29,18 @@ export const organizationService = {
             }
           });
           console.log('🔍 Super admin endpoint test status:', testResponse.status);
-          if (testResponse.status === 200 || testResponse.status === 401) {
+          if (testResponse.status === 200 || testResponse.status === 401 || testResponse.status === 500) {
             console.log('✅ Backend is reachable via super admin endpoint');
+            return { status: 'connected', endpoint: 'super-admin', responseStatus: testResponse.status };
           }
         } else {
           const directData = await directResponse.json();
           console.log('✅ Direct fetch successful:', directData);
+          return { status: 'connected', endpoint: 'health', data: directData };
         }
       } catch (fetchError) {
         console.error('❌ Direct fetch failed:', fetchError);
-      }
-      
-      // Now test with axios - create a temporary axios instance for health check
-      const healthApi = axios.create({
-        baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000',
-        timeout: 10000,
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const response = await healthApi.get('/health');
-      console.log('✅ API connection test successful:', response);
-      
-      // Also test super admin endpoint availability
-      try {
-        console.log('🔍 Testing super admin endpoints...');
-        const superAdminResponse = await api.get('/api/super-admin/organizations');
-        console.log('✅ Super admin endpoints available:', superAdminResponse);
-        return { ...response, superAdminAvailable: true };
-      } catch (superAdminError) {
-        console.log('❌ Super admin endpoints not available:', superAdminError.message || superAdminError);
-        console.log('❌ Super admin error details:', superAdminError);
-        return { ...response, superAdminAvailable: false, superAdminError: superAdminError.message || 'Unknown error' };
+        throw fetchError;
       }
     } catch (error) {
       console.error('❌ API connection test failed:', error);
