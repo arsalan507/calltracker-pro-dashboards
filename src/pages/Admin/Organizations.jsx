@@ -32,14 +32,29 @@ const Organizations = () => {
       setLoading(true);
       let response;
       
+      // Test API connection first
+      console.log('🔍 Testing API connection before fetching organizations...');
+      try {
+        await organizationService.testConnection();
+        console.log('✅ API connection verified');
+      } catch (connectionError) {
+        console.error('❌ API connection failed:', connectionError);
+        toast.error('Unable to connect to backend server. Please check your connection.');
+        setLoading(false);
+        return;
+      }
+      
       if (user?.role === 'super_admin') {
+        console.log('🔍 User is super_admin, fetching all organizations');
         // Super admin can see all organizations
         response = await organizationService.getAllOrganizations();
       } else if (user?.organizationId) {
+        console.log('🔍 User is org admin, fetching their organization');
         // Regular admin sees only their organization
         const orgResponse = await organizationService.getOrganization(user.organizationId);
         response = { data: [orgResponse.data] };
       } else {
+        console.log('🔍 User has no organization access');
         setOrganizations([]);
         setLoading(false);
         return;
@@ -145,13 +160,30 @@ const Organizations = () => {
               Manage all organizations and their configurations
             </p>
           </div>
-          <Button
-            onClick={() => handleModal('create')}
-            className="flex items-center space-x-2"
-          >
-            <PlusIcon className="w-5 h-5" />
-            <span>Add Organization</span>
-          </Button>
+          <div className="flex items-center space-x-3">
+            <Button
+              variant="ghost"
+              onClick={async () => {
+                try {
+                  await organizationService.testConnection();
+                  toast.success('✅ Backend connection successful!');
+                } catch (error) {
+                  toast.error('❌ Backend connection failed: ' + (error.message || 'Unknown error'));
+                }
+              }}
+              className="flex items-center space-x-2"
+            >
+              <span>🔍</span>
+              <span>Test API</span>
+            </Button>
+            <Button
+              onClick={() => handleModal('create')}
+              className="flex items-center space-x-2"
+            >
+              <PlusIcon className="w-5 h-5" />
+              <span>Add Organization</span>
+            </Button>
+          </div>
         </div>
       </motion.div>
 

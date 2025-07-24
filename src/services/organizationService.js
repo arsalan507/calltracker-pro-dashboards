@@ -1,6 +1,19 @@
 import api from './api';
 
 export const organizationService = {
+  // Test API connectivity
+  async testConnection() {
+    try {
+      console.log('🔍 Testing API connection...');
+      const response = await api.get('/');
+      console.log('✅ API connection test successful:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ API connection test failed:', error);
+      throw error;
+    }
+  },
+
   async getAllOrganizations(params = {}) {
     try {
       console.log('📡 Fetching all organizations for super admin');
@@ -51,10 +64,18 @@ export const organizationService = {
 
   async createOrganization(orgData) {
     try {
-      console.log('📡 Creating organization through super admin endpoint:', {
-        name: orgData.name,
-        domain: orgData.domain
-      });
+      console.log('🔍 DEBUG: Starting organization creation...');
+      console.log('🔍 DEBUG: Input data:', orgData);
+      
+      // Check authentication token
+      const token = localStorage.getItem('authToken');
+      console.log('🔍 DEBUG: Auth token exists:', !!token);
+      console.log('🔍 DEBUG: Auth token (first 20 chars):', token ? token.substring(0, 20) + '...' : 'None');
+      
+      // Check current user info
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      console.log('🔍 DEBUG: Current user:', currentUser);
+      console.log('🔍 DEBUG: User role:', currentUser.role);
       
       // Use the new super admin endpoint for creating organizations
       const organizationData = {
@@ -70,8 +91,12 @@ export const organizationService = {
         }
       };
       
+      console.log('📡 Making API call to:', '/super-admin/organizations');
+      console.log('📡 With data:', organizationData);
+      console.log('📡 API base URL:', process.env.REACT_APP_API_URL || 'http://localhost:5000/api');
+      
       const response = await api.post('/super-admin/organizations', organizationData);
-      console.log('📡 Organization created successfully:', response);
+      console.log('✅ API call successful! Response:', response);
       
       // The response should already be in the expected format from the backend
       // But let's ensure it matches frontend expectations
@@ -100,9 +125,18 @@ export const organizationService = {
         }
       };
       
+      console.log('✅ Transformed response:', transformedResponse);
       return transformedResponse;
     } catch (error) {
-      console.error('📡 Super admin API call failed:', error);
+      console.error('❌ Organization creation failed!');
+      console.error('❌ Error details:', error);
+      console.error('❌ Error response:', error.response);
+      console.error('❌ Error request:', error.request);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error code:', error.code);
+      console.error('❌ Error status:', error.response?.status);
+      console.error('❌ Error data:', error.response?.data);
+      
       throw error;
     }
   },
