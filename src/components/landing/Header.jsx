@@ -89,9 +89,9 @@ const Header = () => {
             </Button>
             <Button 
               variant="primary"
-              onClick={() => window.open('/admin', '_blank')}
+              onClick={() => window.location.href = '/login'}
             >
-              Admin Login
+              Sign In
             </Button>
           </div>
 
@@ -137,9 +137,9 @@ const Header = () => {
                 <Button 
                   variant="primary" 
                   className="w-full"
-                  onClick={() => window.open('/admin', '_blank')}
+                  onClick={() => window.location.href = '/login'}
                 >
-                  Admin Login
+                  Sign In
                 </Button>
               </div>
             </div>
