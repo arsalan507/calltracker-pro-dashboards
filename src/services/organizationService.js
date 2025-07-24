@@ -5,6 +5,20 @@ export const organizationService = {
   async testConnection() {
     try {
       console.log('🔍 Testing API connection...');
+      console.log('🔍 API Base URL:', process.env.REACT_APP_API_URL || 'Not set');
+      console.log('🔍 Full URL will be:', `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/`);
+      
+      // Test with a direct fetch first to bypass our axios interceptors
+      try {
+        console.log('🔍 Testing with direct fetch...');
+        const directResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/`);
+        const directData = await directResponse.json();
+        console.log('✅ Direct fetch successful:', directData);
+      } catch (fetchError) {
+        console.error('❌ Direct fetch failed:', fetchError);
+      }
+      
+      // Now test with axios
       const response = await api.get('/');
       console.log('✅ API connection test successful:', response);
       
@@ -15,11 +29,20 @@ export const organizationService = {
         console.log('✅ Super admin endpoints available:', superAdminResponse);
         return { ...response, superAdminAvailable: true };
       } catch (superAdminError) {
-        console.log('❌ Super admin endpoints not available:', superAdminError.message);
-        return { ...response, superAdminAvailable: false, superAdminError: superAdminError.message };
+        console.log('❌ Super admin endpoints not available:', superAdminError.message || superAdminError);
+        console.log('❌ Super admin error details:', superAdminError);
+        return { ...response, superAdminAvailable: false, superAdminError: superAdminError.message || 'Unknown error' };
       }
     } catch (error) {
       console.error('❌ API connection test failed:', error);
+      console.error('❌ Error type:', typeof error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+        response: error.response,
+        request: error.request
+      });
       throw error;
     }
   },
