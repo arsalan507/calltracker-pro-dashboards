@@ -7,7 +7,17 @@ export const organizationService = {
       console.log('🔍 Testing API connection...');
       const response = await api.get('/');
       console.log('✅ API connection test successful:', response);
-      return response;
+      
+      // Also test super admin endpoint availability
+      try {
+        console.log('🔍 Testing super admin endpoints...');
+        const superAdminResponse = await api.get('/super-admin/organizations');
+        console.log('✅ Super admin endpoints available:', superAdminResponse);
+        return { ...response, superAdminAvailable: true };
+      } catch (superAdminError) {
+        console.log('❌ Super admin endpoints not available:', superAdminError.message);
+        return { ...response, superAdminAvailable: false, superAdminError: superAdminError.message };
+      }
     } catch (error) {
       console.error('❌ API connection test failed:', error);
       throw error;
