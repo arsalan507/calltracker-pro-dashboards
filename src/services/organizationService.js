@@ -11,15 +11,15 @@ export const organizationService = {
       // Test with a direct fetch first to bypass our axios interceptors
       try {
         console.log('🔍 Testing with direct fetch...');
-        const directResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/`);
+        const directResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/health`);
         const directData = await directResponse.json();
         console.log('✅ Direct fetch successful:', directData);
       } catch (fetchError) {
         console.error('❌ Direct fetch failed:', fetchError);
       }
       
-      // Now test with axios
-      const response = await api.get('/');
+      // Now test with axios - call root endpoint, not /api/
+      const response = await api.get('/health');
       console.log('✅ API connection test successful:', response);
       
       // Also test super admin endpoint availability
