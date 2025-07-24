@@ -69,28 +69,6 @@ const TicketList = () => {
   // const userRole = getUserRole();
   // const userId = getUserId();
 
-  useEffect(() => {
-    fetchTickets();
-  }, [pagination.page, filters, searchTerm]);
-
-  useEffect(() => {
-    // Set up real-time updates
-    const handleTicketUpdate = (data) => {
-      if (data.type === 'ticket-created' || data.type === 'ticket-updated') {
-        fetchTickets();
-        toast.success(`Ticket ${data.type === 'ticket-created' ? 'created' : 'updated'}`);
-      }
-    };
-
-    notificationService.addEventListener('ticket-created', handleTicketUpdate);
-    notificationService.addEventListener('ticket-updated', handleTicketUpdate);
-
-    return () => {
-      notificationService.removeEventListener('ticket-created');
-      notificationService.removeEventListener('ticket-updated');
-    };
-  }, []);
-
   const fetchTickets = useCallback(async () => {
     try {
       setLoading(true);
@@ -129,6 +107,28 @@ const TicketList = () => {
       setLoading(false);
     }
   }, [pagination.page, pagination.limit, searchTerm, filters, canViewAllTickets]);
+
+  useEffect(() => {
+    fetchTickets();
+  }, [fetchTickets]);
+
+  useEffect(() => {
+    // Set up real-time updates
+    const handleTicketUpdate = (data) => {
+      if (data.type === 'ticket-created' || data.type === 'ticket-updated') {
+        fetchTickets();
+        toast.success(`Ticket ${data.type === 'ticket-created' ? 'created' : 'updated'}`);
+      }
+    };
+
+    notificationService.addEventListener('ticket-created', handleTicketUpdate);
+    notificationService.addEventListener('ticket-updated', handleTicketUpdate);
+
+    return () => {
+      notificationService.removeEventListener('ticket-created');
+      notificationService.removeEventListener('ticket-updated');
+    };
+  }, [fetchTickets]);
 
   const handleTicketSelect = (ticketId, isSelected) => {
     if (isSelected) {
