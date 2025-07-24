@@ -61,9 +61,21 @@ export const organizationService = {
   async getAllOrganizations(params = {}) {
     try {
       console.log('📡 Fetching all organizations from super admin endpoint');
-      const response = await api.get('/api/super-admin/organizations', { params });
+      console.log('📡 Base URL being used:', process.env.REACT_APP_API_URL);
+      
+      // Create a clean axios instance to avoid double /api issue
+      const cleanApi = axios.create({
+        baseURL: 'https://calltrackerpro-backend.vercel.app',
+        timeout: 10000,
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      });
+      
+      const response = await cleanApi.get('/api/super-admin/organizations', { params });
       console.log('📡 Organizations fetched successfully:', response);
-      return response;
+      return { data: response.data }; // Ensure consistent response format
     } catch (error) {
       console.error('📡 Error fetching organizations:', error);
       throw error;
@@ -118,7 +130,18 @@ export const organizationService = {
       };
       
       console.log('📡 Making API call to create organization:', organizationData);
-      const response = await api.post('/api/super-admin/organizations', organizationData);
+      
+      // Create a clean axios instance to avoid double /api issue
+      const cleanApi = axios.create({
+        baseURL: 'https://calltrackerpro-backend.vercel.app',
+        timeout: 10000,
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      });
+      
+      const response = await cleanApi.post('/api/super-admin/organizations', organizationData);
       console.log('✅ Organization created successfully:', response);
       
       return response;
@@ -131,8 +154,18 @@ export const organizationService = {
   async deleteOrganization(orgId) {
     try {
       console.log('🗑️ Deleting organization via super admin endpoint:', orgId);
-      // The backend requires confirmDelete: true for safety
-      const response = await api.delete(`/api/super-admin/organizations/${orgId}`, {
+      
+      // Create a clean axios instance to avoid double /api issue
+      const cleanApi = axios.create({
+        baseURL: 'https://calltrackerpro-backend.vercel.app',
+        timeout: 10000,
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      });
+      
+      const response = await cleanApi.delete(`/api/super-admin/organizations/${orgId}`, {
         data: { confirmDelete: true }
       });
       console.log('✅ Organization deleted successfully:', response);
@@ -146,7 +179,18 @@ export const organizationService = {
   async updateOrganization(orgId, data) {
     try {
       console.log('✏️ Updating organization via super admin endpoint:', orgId, data);
-      const response = await api.put(`/api/super-admin/organizations/${orgId}`, data);
+      
+      // Create a clean axios instance to avoid double /api issue
+      const cleanApi = axios.create({
+        baseURL: 'https://calltrackerpro-backend.vercel.app',
+        timeout: 10000,
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      });
+      
+      const response = await cleanApi.put(`/api/super-admin/organizations/${orgId}`, data);
       console.log('✅ Organization updated successfully:', response);
       return response;
     } catch (error) {
