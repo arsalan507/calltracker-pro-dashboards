@@ -18,8 +18,26 @@ export const organizationService = {
           'http://localhost:5000/health';
         console.log('🔍 Testing health URL:', healthUrl);
         const directResponse = await fetch(healthUrl);
-        const directData = await directResponse.json();
-        console.log('✅ Direct fetch successful:', directData);
+        
+        if (!directResponse.ok) {
+          console.warn('⚠️ Health endpoint not available (404) - this is expected if not implemented');
+          // Try a super admin endpoint instead to test connectivity
+          console.log('🔍 Testing super admin endpoint instead...');
+          const testUrl = `${process.env.REACT_APP_API_URL}/api/super-admin/organizations`;
+          const testResponse = await fetch(testUrl, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            }
+          });
+          console.log('🔍 Super admin endpoint test status:', testResponse.status);
+          if (testResponse.status === 200 || testResponse.status === 401) {
+            console.log('✅ Backend is reachable via super admin endpoint');
+          }
+        } else {
+          const directData = await directResponse.json();
+          console.log('✅ Direct fetch successful:', directData);
+        }
       } catch (fetchError) {
         console.error('❌ Direct fetch failed:', fetchError);
       }
@@ -63,19 +81,43 @@ export const organizationService = {
       console.log('📡 Fetching all organizations from super admin endpoint');
       console.log('📡 Base URL being used:', process.env.REACT_APP_API_URL);
       
-      // Create a clean axios instance to avoid double /api issue
-      const cleanApi = axios.create({
-        baseURL: 'https://calltrackerpro-backend.vercel.app',
-        timeout: 10000,
-        headers: { 
+      // Use direct fetch to avoid axios issues
+      const authToken = localStorage.getItem('authToken');
+      if (!authToken) {
+        throw new Error('No authentication token found. Please log in again.');
+      }
+      
+      const url = new URL('/api/super-admin/organizations', 'https://calltrackerpro-backend.vercel.app');
+      Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+      
+      console.log('📡 Fetching from URL:', url.toString());
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${authToken}`
         }
       });
       
-      const response = await cleanApi.get('/api/super-admin/organizations', { params });
-      console.log('📡 Organizations fetched successfully:', response);
-      return { data: response.data }; // Ensure consistent response format
+      console.log('📡 Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ HTTP Error:', response.status, errorText);
+        
+        if (response.status === 401) {
+          throw new Error('Authentication failed. Please log in again.');
+        } else if (response.status === 403) {
+          throw new Error('Access denied. You need super admin privileges.');
+        } else {
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+      }
+      
+      const result = await response.json();
+      console.log('📡 Organizations fetched successfully:', result);
+      return { data: result.data || result }; // Handle different response formats
     } catch (error) {
       console.error('📡 Error fetching organizations:', error);
       throw error;
@@ -115,6 +157,17 @@ export const organizationService = {
       console.log('🏢 Creating organization with super admin endpoint');
       console.log('🏢 Input data:', orgData);
       
+      // Debug authentication
+      const authToken = localStorage.getItem('authToken');
+      const userData = localStorage.getItem('user');
+      console.log('🔐 Auth token exists:', !!authToken);
+      console.log('🔐 Auth token length:', authToken?.length || 0);
+      console.log('👤 User data:', userData ? JSON.parse(userData) : 'No user data');
+      
+      if (!authToken) {
+        throw new Error('No authentication token found. Please log in again.');
+      }
+      
       // Prepare data in the format expected by the backend
       const organizationData = {
         name: orgData.name,
@@ -137,15 +190,25 @@ export const organizationService = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify(organizationData)
       });
       
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
+      
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ HTTP Error:', response.status, errorText);
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+        
+        if (response.status === 401) {
+          throw new Error('Authentication failed. Please log in again.');
+        } else if (response.status === 403) {
+          throw new Error('Access denied. You need super admin privileges.');
+        } else {
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
       }
       
       const result = await response.json();
