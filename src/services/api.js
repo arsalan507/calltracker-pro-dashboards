@@ -30,12 +30,39 @@ api.interceptors.response.use(
     return response.data;
   },
   (error) => {
+    console.error('🚨 API Error Details:', {
+      message: error.message,
+      response: error.response,
+      request: error.request,
+      status: error.response?.status,
+      data: error.response?.data,
+      code: error.code
+    });
+
     if (error.response?.status === 401) {
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
       window.location.href = '/admin/login';
     }
-    return Promise.reject(error.response?.data || error.message);
+
+    // Handle different types of errors more clearly
+    if (error.response) {
+      // Server responded with error status
+      return Promise.reject(error.response.data || { message: `Server error: ${error.response.status}` });
+    } else if (error.request) {
+      // Request was made but no response received (network error, CORS, etc.)
+      return Promise.reject({ 
+        message: 'Network error: Unable to reach server. Please check if the backend is running and CORS is configured.',
+        type: 'network_error',
+        originalError: error.message
+      });
+    } else {
+      // Something else happened
+      return Promise.reject({ 
+        message: error.message || 'Unknown error occurred',
+        type: 'unknown_error'
+      });
+    }
   }
 );
 

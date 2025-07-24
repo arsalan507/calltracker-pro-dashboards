@@ -39,7 +39,24 @@ const Organizations = () => {
         console.log('✅ API connection verified');
       } catch (connectionError) {
         console.error('❌ API connection failed:', connectionError);
-        toast.error('Unable to connect to backend server. Please check your connection.');
+        toast.error('Backend server is temporarily unavailable. Using mock data until server is restored.');
+        
+        // Provide mock data so the UI doesn't break
+        setOrganizations([
+          {
+            id: 'mock-1',
+            name: 'Demo Organization',
+            domain: 'demo.example.com',
+            status: 'active',
+            plan: 'basic',
+            users: 5,
+            billing: { amount: 29, period: 'month' },
+            createdAt: new Date().toLocaleDateString(),
+            lastActive: 'Today',
+            settings: {},
+            description: 'Demo organization while backend is being restored'
+          }
+        ]);
         setLoading(false);
         return;
       }
@@ -161,10 +178,28 @@ const Organizations = () => {
             <Button
               variant="ghost"
               onClick={async () => {
+                console.log('🧪 Starting comprehensive API test...');
+                
+                // Test 1: Direct fetch (bypass axios)
                 try {
+                  console.log('🧪 Test 1: Direct fetch test');
+                  const directResponse = await fetch('https://calltrackerpro-backend.vercel.app/health');
+                  const directData = await directResponse.json();
+                  console.log('✅ Direct fetch successful:', directData);
+                  toast.success('✅ Direct fetch successful!');
+                } catch (directError) {
+                  console.error('❌ Direct fetch failed:', directError);
+                  toast.error('❌ Direct fetch failed: ' + directError.message);
+                  return; // Stop here if direct fetch fails
+                }
+
+                // Test 2: Axios test
+                try {
+                  console.log('🧪 Test 2: Axios API test');
                   await organizationService.testConnection();
                   toast.success('✅ Backend connection successful!');
                 } catch (error) {
+                  console.error('❌ Axios test failed:', error);
                   toast.error('❌ Backend connection failed: ' + (error.message || 'Unknown error'));
                 }
               }}
