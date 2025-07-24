@@ -1,4 +1,5 @@
 import api from './api';
+import axios from 'axios';
 
 export const organizationService = {
   // Test API connectivity
@@ -11,15 +12,25 @@ export const organizationService = {
       // Test with a direct fetch first to bypass our axios interceptors
       try {
         console.log('🔍 Testing with direct fetch...');
-        const directResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/health`);
+        // The health endpoint is at the root, not under /api
+        const healthUrl = process.env.REACT_APP_API_URL ? 
+          `${process.env.REACT_APP_API_URL}/health` : 
+          'http://localhost:5000/health';
+        console.log('🔍 Testing health URL:', healthUrl);
+        const directResponse = await fetch(healthUrl);
         const directData = await directResponse.json();
         console.log('✅ Direct fetch successful:', directData);
       } catch (fetchError) {
         console.error('❌ Direct fetch failed:', fetchError);
       }
       
-      // Now test with axios - call root endpoint, not /api/
-      const response = await api.get('/health');
+      // Now test with axios - create a temporary axios instance for health check
+      const healthApi = axios.create({
+        baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000',
+        timeout: 10000,
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const response = await healthApi.get('/health');
       console.log('✅ API connection test successful:', response);
       
       // Also test super admin endpoint availability
