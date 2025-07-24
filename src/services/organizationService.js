@@ -44,6 +44,24 @@ export const organizationService = {
     } catch (error) {
       throw error;
     }
+  },
+
+  async createOrganization(orgData) {
+    try {
+      const response = await api.post('/organizations', orgData);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async deleteOrganization(orgId) {
+    try {
+      const response = await api.delete(`/organizations/${orgId}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
   }
 };
 

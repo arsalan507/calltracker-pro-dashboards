@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { 
   BuildingOfficeIcon, 
@@ -27,36 +27,64 @@ const Organizations = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
-  useEffect(() => {
-    const fetchOrganizations = async () => {
-      try {
-        if (user?.organizationId) {
-          // If user belongs to a specific organization, fetch that one
-          const orgResponse = await organizationService.getOrganization(user.organizationId);
-          setOrganizations([orgResponse]);
-        } else {
-          // Super admin - should fetch all organizations (this endpoint might not exist yet)
-          // For now, we'll show a message that this is a super admin view
-          setOrganizations([]);
-          toast.info('Super admin view - Organization management coming soon');
-        }
-      } catch (error) {
-        console.error('Error fetching organizations:', error);
-        toast.error('Failed to load organizations');
+  const fetchOrganizations = useCallback(async () => {
+    try {
+      setLoading(true);
+      let response;
+      
+      if (user?.role === 'super_admin') {
+        // Super admin can see all organizations
+        response = await organizationService.getAllOrganizations();
+      } else if (user?.organizationId) {
+        // Regular admin sees only their organization
+        const orgResponse = await organizationService.getOrganization(user.organizationId);
+        response = { data: [orgResponse.data] };
+      } else {
         setOrganizations([]);
-      } finally {
         setLoading(false);
+        return;
       }
-    };
 
-    if (user) {
-      fetchOrganizations();
+      // Transform backend organization data to match frontend structure
+      const transformedOrgs = response?.data?.map(backendOrg => ({
+        id: backendOrg._id || backendOrg.id,
+        name: backendOrg.name,
+        domain: backendOrg.domain || `${backendOrg.name.toLowerCase()}.com`,
+        status: backendOrg.isActive ? 'active' : 'suspended',
+        plan: backendOrg.plan || 'basic',
+        users: backendOrg.userCount || 0,
+        billing: {
+          amount: backendOrg.billing?.amount || 0,
+          period: backendOrg.billing?.period || 'month'
+        },
+        createdAt: new Date(backendOrg.createdAt).toLocaleDateString(),
+        lastActive: backendOrg.lastActivityAt ? new Date(backendOrg.lastActivityAt).toLocaleDateString() : 'Never',
+        settings: backendOrg.settings || {}
+      })) || [];
+
+      setOrganizations(transformedOrgs);
+    } catch (error) {
+      console.error('Error fetching organizations:', error);
+      toast.error('Failed to load organizations');
+      setOrganizations([]);
+    } finally {
+      setLoading(false);
     }
   }, [user]);
 
+  const refreshOrganizations = async () => {
+    await fetchOrganizations();
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchOrganizations();
+    }
+  }, [user, fetchOrganizations]);
+
   const filteredOrganizations = organizations.filter(org => {
     const matchesSearch = org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         org.domain.toLowerCase().includes(searchTerm.toLowerCase());
+                         (org.domain && org.domain.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = statusFilter === 'all' || org.status === statusFilter;
     const matchesPlan = planFilter === 'all' || org.plan === planFilter;
     
@@ -301,18 +329,23 @@ const Organizations = () => {
         }
         size={modalType === 'users' || modalType === 'billing' ? 'xl' : 'lg'}
       >
-        <ModalContent modalType={modalType} organization={selectedOrg} />
+        <ModalContent 
+          modalType={modalType} 
+          organization={selectedOrg} 
+          onClose={() => setIsModalOpen(false)}
+          onSuccess={refreshOrganizations}
+        />
       </Modal>
     </div>
   );
 };
 
 // Modal Content Component
-const ModalContent = ({ modalType, organization }) => {
+const ModalContent = ({ modalType, organization, onClose, onSuccess }) => {
   switch (modalType) {
     case 'create':
     case 'edit':
-      return <OrganizationForm organization={organization} isEdit={modalType === 'edit'} />;
+      return <OrganizationForm organization={organization} isEdit={modalType === 'edit'} onClose={onClose} onSuccess={onSuccess} />;
     case 'view':
       return <OrganizationDetails organization={organization} />;
     case 'users':
@@ -322,64 +355,180 @@ const ModalContent = ({ modalType, organization }) => {
     case 'settings':
       return <OrganizationSettings organization={organization} />;
     case 'delete':
-      return <DeleteConfirmation organization={organization} />;
+      return <DeleteConfirmation organization={organization} onClose={onClose} onSuccess={onSuccess} />;
     default:
       return null;
   }
 };
 
 // Organization Form Component
-const OrganizationForm = ({ organization, isEdit }) => {
+const OrganizationForm = ({ organization, isEdit, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     name: organization?.name || '',
     domain: organization?.domain || '',
     plan: organization?.plan || 'basic',
-    status: organization?.status || 'active'
+    status: organization?.status || 'active',
+    description: organization?.description || '',
+    address: organization?.address || '',
+    phone: organization?.phone || '',
+    website: organization?.website || ''
   });
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = 'Organization name is required';
+    }
+
+    if (!formData.domain.trim()) {
+      newErrors.domain = 'Domain is required';
+    } else if (!/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(formData.domain)) {
+      newErrors.domain = 'Please enter a valid domain (e.g., company.com)';
+    }
+
+    if (formData.website && !/^https?:\/\/.+/.test(formData.website)) {
+      newErrors.website = 'Website must start with http:// or https://';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      toast.error('Please fix the errors before submitting');
+      return;
+    }
+
+    setLoading(true);
+    
+    try {
+      const orgData = {
+        name: formData.name.trim(),
+        domain: formData.domain.trim(),
+        plan: formData.plan,
+        isActive: formData.status === 'active',
+        description: formData.description.trim(),
+        address: formData.address.trim(),
+        phone: formData.phone.trim(),
+        website: formData.website.trim(),
+        settings: {
+          notifications: true,
+          analytics: true,
+          api: false
+        }
+      };
+
+      if (isEdit) {
+        await organizationService.updateOrganization(organization.id, orgData);
+        toast.success('Organization updated successfully');
+      } else {
+        await organizationService.createOrganization(orgData);
+        toast.success('Organization created successfully! You can now create users for this organization.');
+      }
+      
+      onSuccess(); // Refresh the organizations list
+      onClose(); // Close the modal
+    } catch (error) {
+      console.error('Error saving organization:', error);
+      toast.error(error.response?.data?.message || error.message || `Failed to ${isEdit ? 'update' : 'create'} organization`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="space-y-4">
-      <Input
-        label="Organization Name"
-        value={formData.name}
-        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-        required
-      />
-      <Input
-        label="Domain"
-        value={formData.domain}
-        onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
-        required
-      />
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Plan</label>
-        <select
-          value={formData.plan}
-          onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
-          className="input-field"
-        >
-          <option value="basic">Basic</option>
-          <option value="professional">Professional</option>
-          <option value="enterprise">Enterprise</option>
-        </select>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Input
+          label="Organization Name *"
+          placeholder="Enter organization name"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          error={errors.name}
+          required
+        />
+        <Input
+          label="Domain *"
+          placeholder="company.com"
+          value={formData.domain}
+          onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
+          error={errors.domain}
+          required
+        />
       </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-        <select
-          value={formData.status}
-          onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-          className="input-field"
-        >
-          <option value="active">Active</option>
-          <option value="suspended">Suspended</option>
-          <option value="pending">Pending</option>
-        </select>
+
+      <Input
+        label="Description"
+        placeholder="Brief description of the organization"
+        value={formData.description}
+        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+      />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Input
+          label="Phone"
+          placeholder="+1 (555) 123-4567"
+          value={formData.phone}
+          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+        />
+        <Input
+          label="Website"
+          placeholder="https://company.com"
+          value={formData.website}
+          onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+          error={errors.website}
+        />
       </div>
+
+      <Input
+        label="Address"
+        placeholder="Company address"
+        value={formData.address}
+        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+      />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Plan</label>
+          <select
+            value={formData.plan}
+            onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
+            className="input-field"
+          >
+            <option value="basic">Basic - Up to 10 users</option>
+            <option value="professional">Professional - Up to 50 users</option>
+            <option value="enterprise">Enterprise - Unlimited users</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+          <select
+            value={formData.status}
+            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+            className="input-field"
+          >
+            <option value="active">Active</option>
+            <option value="suspended">Suspended</option>
+            <option value="pending">Pending</option>
+          </select>
+        </div>
+      </div>
+
       <Modal.Footer>
-        <Button variant="ghost">Cancel</Button>
-        <Button>{isEdit ? 'Update' : 'Create'} Organization</Button>
+        <Button type="button" variant="ghost" onClick={onClose} disabled={loading}>
+          Cancel
+        </Button>
+        <Button type="submit" loading={loading} disabled={loading}>
+          {loading ? 'Saving...' : (isEdit ? 'Update Organization' : 'Create Organization')}
+        </Button>
       </Modal.Footer>
-    </div>
+    </form>
   );
 };
 
@@ -555,27 +704,55 @@ const OrganizationSettings = ({ organization }) => {
 };
 
 // Delete Confirmation Component
-const DeleteConfirmation = ({ organization }) => (
-  <div className="space-y-4">
-    <div className="text-center">
-      <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-        <TrashIcon className="h-6 w-6 text-red-600" />
-      </div>
-      <div className="mt-3">
-        <h3 className="text-lg font-medium text-gray-900">Delete Organization</h3>
-        <div className="mt-2">
-          <p className="text-sm text-gray-500">
-            Are you sure you want to delete <strong>{organization?.name}</strong>? 
-            This action cannot be undone and will permanently remove all associated data.
-          </p>
+const DeleteConfirmation = ({ organization, onClose, onSuccess }) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleDelete = async () => {
+    setLoading(true);
+    try {
+      await organizationService.deleteOrganization(organization.id);
+      toast.success('Organization deleted successfully');
+      onSuccess(); // Refresh the organizations list
+      onClose(); // Close the modal
+    } catch (error) {
+      console.error('Error deleting organization:', error);
+      toast.error(error.message || 'Failed to delete organization');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="text-center">
+        <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+          <TrashIcon className="h-6 w-6 text-red-600" />
+        </div>
+        <div className="mt-3">
+          <h3 className="text-lg font-medium text-gray-900">Delete Organization</h3>
+          <div className="mt-2">
+            <p className="text-sm text-gray-500">
+              Are you sure you want to delete <strong>{organization?.name}</strong>? 
+              This action cannot be undone and will permanently remove all associated data including users, tickets, and call logs.
+            </p>
+          </div>
         </div>
       </div>
+      <Modal.Footer>
+        <Button variant="ghost" onClick={onClose} disabled={loading}>
+          Cancel
+        </Button>
+        <Button 
+          variant="danger" 
+          onClick={handleDelete} 
+          loading={loading}
+          disabled={loading}
+        >
+          {loading ? 'Deleting...' : 'Delete Organization'}
+        </Button>
+      </Modal.Footer>
     </div>
-    <Modal.Footer>
-      <Button variant="ghost">Cancel</Button>
-      <Button variant="danger">Delete Organization</Button>
-    </Modal.Footer>
-  </div>
-);
+  );
+};
 
 export default Organizations;
