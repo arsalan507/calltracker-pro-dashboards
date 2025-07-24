@@ -45,14 +45,6 @@ export const organizationService = {
     }
   },
 
-  async updateOrganization(orgId, data) {
-    try {
-      const response = await api.put(`/organizations/${orgId}`, data);
-      return response;
-    } catch (error) {
-      throw error;
-    }
-  },
 
   async getOrganizationUsers(orgId) {
     try {

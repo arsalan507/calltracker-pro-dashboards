@@ -468,9 +468,9 @@ const OrganizationForm = ({ organization, isEdit, onClose, onSuccess }) => {
         
         // Show success message with admin user credentials
         const adminUser = response.data.adminUser;
-        const orgData = response.data.organization;
+        const createdOrg = response.data.organization;
         toast.success(
-          `Organization "${orgData.name}" created successfully!\n\n` +
+          `Organization "${createdOrg.name}" created successfully!\n\n` +
           `Admin User Created:\n` +
           `Email: ${adminUser.email}\n` +
           `Password: TempPassword123!\n\n` +
