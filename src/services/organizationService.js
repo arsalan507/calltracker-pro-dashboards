@@ -130,21 +130,28 @@ export const organizationService = {
       };
       
       console.log('📡 Making API call to create organization:', organizationData);
+      console.log('📡 Using direct fetch to avoid axios issues');
       
-      // Create a clean axios instance to avoid double /api issue
-      const cleanApi = axios.create({
-        baseURL: 'https://calltrackerpro-backend.vercel.app',
-        timeout: 10000,
-        headers: { 
+      // Use direct fetch to completely bypass axios configuration issues
+      const response = await fetch('https://calltrackerpro-backend.vercel.app/api/super-admin/organizations', {
+        method: 'POST',
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
+        },
+        body: JSON.stringify(organizationData)
       });
       
-      const response = await cleanApi.post('/api/super-admin/organizations', organizationData);
-      console.log('✅ Organization created successfully:', response);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ HTTP Error:', response.status, errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
       
-      return response;
+      const result = await response.json();
+      console.log('✅ Organization created successfully:', result);
+      
+      return { data: result };
     } catch (error) {
       console.error('❌ Organization creation failed:', error);
       throw error;
