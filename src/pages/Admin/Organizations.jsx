@@ -69,17 +69,14 @@ const Organizations = () => {
         plan: backendOrg.plan || 'basic',
         users: backendOrg.userCount || 0,
         billing: {
-          amount: backendOrg.subscription?.plan === 'basic' ? 29 : 
-                  backendOrg.subscription?.plan === 'professional' ? 99 : 299,
+          amount: backendOrg.plan === 'basic' ? 29 : 
+                  backendOrg.plan === 'professional' ? 99 : 299,
           period: 'month'
         },
-        createdAt: new Date(backendOrg.createdAt).toLocaleDateString(),
+        createdAt: backendOrg.createdAt ? new Date(backendOrg.createdAt).toLocaleDateString() : 'N/A',
         lastActive: backendOrg.lastActivityAt ? new Date(backendOrg.lastActivityAt).toLocaleDateString() : 'Never',
         settings: backendOrg.settings || {},
-        owner: backendOrg.owner ? {
-          name: `${backendOrg.owner.firstName} ${backendOrg.owner.lastName}`,
-          email: backendOrg.owner.email
-        } : null
+        description: backendOrg.description || ''
       })) || [];
 
       setOrganizations(transformedOrgs);
@@ -471,11 +468,12 @@ const OrganizationForm = ({ organization, isEdit, onClose, onSuccess }) => {
         
         // Show success message with admin user credentials
         const adminUser = response.data.adminUser;
+        const orgData = response.data.organization;
         toast.success(
-          `Organization "${response.data.name}" created successfully!\n\n` +
+          `Organization "${orgData.name}" created successfully!\n\n` +
           `Admin User Created:\n` +
           `Email: ${adminUser.email}\n` +
-          `Password: ${adminUser.tempPassword}\n\n` +
+          `Password: TempPassword123!\n\n` +
           `Please share these credentials with the organization admin.`,
           { 
             duration: 8000,

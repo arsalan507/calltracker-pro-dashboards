@@ -16,15 +16,10 @@ export const organizationService = {
 
   async getAllOrganizations(params = {}) {
     try {
-      console.log('📡 Fetching all organizations - using fallback mock data since super admin endpoints not deployed');
-      // Since super admin endpoints are not deployed, return mock data
-      const mockResponse = {
-        success: true,
-        data: [],
-        message: 'No organizations found - super admin endpoints not yet deployed'
-      };
-      console.log('📡 Using mock organizations data:', mockResponse);
-      return mockResponse;
+      console.log('📡 Fetching all organizations from super admin endpoint');
+      const response = await api.get('/super-admin/organizations', { params });
+      console.log('📡 Organizations fetched successfully:', response);
+      return response;
     } catch (error) {
       console.error('📡 Error fetching organizations:', error);
       throw error;
@@ -68,30 +63,60 @@ export const organizationService = {
   },
 
   async createOrganization(orgData) {
-    console.log('❌ Organization creation not available');
-    console.log('❌ Super admin endpoints are not deployed on the backend');
-    console.log('❌ Available endpoints:', [
-      'GET /api/call-logs/test',
-      'POST /api/call-logs', 
-      'GET /api/call-logs',
-      'POST /api/auth/register',
-      'POST /api/auth/login',
-      'GET /api/auth/profile'
-    ]);
-    
-    throw new Error(
-      'Organization creation is not available. The backend super admin endpoints have not been deployed yet. ' +
-      'Please deploy the super admin endpoints to enable organization management functionality.'
-    );
+    try {
+      console.log('🏢 Creating organization with super admin endpoint');
+      console.log('🏢 Input data:', orgData);
+      
+      // Prepare data in the format expected by the backend
+      const organizationData = {
+        name: orgData.name,
+        domain: orgData.domain,
+        description: orgData.description || '',
+        plan: orgData.plan || 'basic',
+        adminUser: {
+          firstName: 'Admin',
+          lastName: 'User',
+          email: `admin@${orgData.domain}`,
+          password: 'TempPassword123!'
+        }
+      };
+      
+      console.log('📡 Making API call to create organization:', organizationData);
+      const response = await api.post('/super-admin/organizations', organizationData);
+      console.log('✅ Organization created successfully:', response);
+      
+      return response;
+    } catch (error) {
+      console.error('❌ Organization creation failed:', error);
+      throw error;
+    }
   },
 
   async deleteOrganization(orgId) {
-    console.log('❌ Organization deletion not available');
-    console.log('❌ Super admin endpoints are not deployed on the backend');
-    
-    throw new Error(
-      'Organization deletion is not available. The backend super admin endpoints have not been deployed yet.'
-    );
+    try {
+      console.log('🗑️ Deleting organization via super admin endpoint:', orgId);
+      // The backend requires confirmDelete: true for safety
+      const response = await api.delete(`/super-admin/organizations/${orgId}`, {
+        data: { confirmDelete: true }
+      });
+      console.log('✅ Organization deleted successfully:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Error deleting organization:', error);
+      throw error;
+    }
+  },
+
+  async updateOrganization(orgId, data) {
+    try {
+      console.log('✏️ Updating organization via super admin endpoint:', orgId, data);
+      const response = await api.put(`/super-admin/organizations/${orgId}`, data);
+      console.log('✅ Organization updated successfully:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Error updating organization:', error);
+      throw error;
+    }
   }
 };
 
