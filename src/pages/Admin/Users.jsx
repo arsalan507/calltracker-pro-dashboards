@@ -17,10 +17,12 @@ import {
   CalendarIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
-  XCircleIcon
+  XCircleIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
 import { Card, Button, Input, Modal } from '../../components/common';
 import { userService } from '../../services/userService';
+import { organizationService } from '../../services/organizationService';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -108,6 +110,31 @@ const Users = () => {
     }
   }, [user, fetchUsers]);
 
+  // Set up real-time updates for user changes
+  useEffect(() => {
+    const handleUserUpdate = (data) => {
+      if (data.type === 'user-created' || data.type === 'user-updated' || data.type === 'user-deleted') {
+        fetchUsers(); // Refresh user list
+        toast.success(`User ${data.type.replace('user-', '')} successfully`);
+      }
+    };
+
+    // Listen for real-time user updates (if notification service is available)
+    if (typeof window !== 'undefined' && window.notificationService) {
+      window.notificationService.addEventListener('user-created', handleUserUpdate);
+      window.notificationService.addEventListener('user-updated', handleUserUpdate);
+      window.notificationService.addEventListener('user-deleted', handleUserUpdate);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined' && window.notificationService) {
+        window.notificationService.removeEventListener('user-created');
+        window.notificationService.removeEventListener('user-updated');
+        window.notificationService.removeEventListener('user-deleted');
+      }
+    };
+  }, [fetchUsers]);
+
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -185,13 +212,24 @@ const Users = () => {
               Manage all users across the platform
             </p>
           </div>
-          <Button
-            onClick={() => handleModal('create')}
-            className="flex items-center space-x-2"
-          >
-            <PlusIcon className="w-5 h-5" />
-            <span>Add User</span>
-          </Button>
+          <div className="flex items-center space-x-3">
+            <Button
+              variant="ghost"
+              onClick={refreshUsers}
+              disabled={loading}
+              className="flex items-center space-x-2"
+            >
+              <ArrowPathIcon className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </Button>
+            <Button
+              onClick={() => handleModal('create')}
+              className="flex items-center space-x-2"
+            >
+              <PlusIcon className="w-5 h-5" />
+              <span>Add User</span>
+            </Button>
+          </div>
         </div>
       </motion.div>
 
@@ -500,105 +538,281 @@ const ModalContent = ({ modalType, user, onClose, onSuccess }) => {
 // User Form Component
 const UserForm = ({ user, isEdit, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
-    name: user?.name || '',
+    fullName: user?.name || '',
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
     email: user?.email || '',
     phone: user?.phone || '',
     role: user?.role || 'agent',
     status: user?.status || 'active',
-    organization: user?.organization || ''
+    organizationId: user?.organizationId || '',
+    password: '',
+    confirmPassword: ''
   });
   const [loading, setLoading] = useState(false);
+  const [organizations, setOrganizations] = useState([]);
+  const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  // Fetch organizations for dropdown
+  useEffect(() => {
+    fetchOrganizations();
+  }, []);
+
+  const fetchOrganizations = async () => {
+    try {
+      const response = await organizationService.getAllOrganizations();
+      setOrganizations(response.data || []);
+    } catch (error) {
+      console.error('Error fetching organizations:', error);
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!formData.fullName.trim() && (!formData.firstName.trim() || !formData.lastName.trim())) {
+      newErrors.name = 'Full name or first/last name is required';
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Email is invalid';
+    }
+
+    if (!isEdit) {
+      if (!formData.password) {
+        newErrors.password = 'Password is required';
+      } else if (formData.password.length < 6) {
+        newErrors.password = 'Password must be at least 6 characters';
+      }
+
+      if (formData.password !== formData.confirmPassword) {
+        newErrors.confirmPassword = 'Passwords do not match';
+      }
+    }
+
+    if (!formData.organizationId && formData.role !== 'super_admin') {
+      newErrors.organization = 'Organization is required for non-super admin users';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      toast.error('Please fix the errors before submitting');
+      return;
+    }
+
     setLoading(true);
     
     try {
+      const userData = {
+        fullName: formData.fullName || `${formData.firstName} ${formData.lastName}`.trim(),
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        role: formData.role,
+        isActive: formData.status === 'active',
+        organizationId: formData.role === 'super_admin' ? null : formData.organizationId
+      };
+
+      if (!isEdit) {
+        userData.password = formData.password;
+      }
+
       if (isEdit) {
         // Update existing user
-        await userService.updateUser(user.id, {
-          fullName: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          role: formData.role,
-          isActive: formData.status === 'active'
-        });
+        await userService.updateUser(user.id, userData);
         toast.success('User updated successfully');
       } else {
         // Create new user
-        await userService.createUser({
-          fullName: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          role: formData.role,
-          isActive: formData.status === 'active',
-          password: 'TempPassword123!' // You might want to generate this or let user set it
-        });
-        toast.success('User created successfully');
+        await userService.createUser(userData);
+        toast.success('User created successfully! They can now login with their email and password.');
       }
       
       onSuccess(); // Refresh the users list
       onClose(); // Close the modal
     } catch (error) {
       console.error('Error saving user:', error);
-      toast.error(error.message || `Failed to ${isEdit ? 'update' : 'create'} user`);
+      toast.error(error.response?.data?.message || error.message || `Failed to ${isEdit ? 'update' : 'create'} user`);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <Input
-        label="Full Name"
-        value={formData.name}
-        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-        required
-      />
-      <Input
-        label="Email"
-        type="email"
-        value={formData.email}
-        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-        required
-      />
-      <Input
-        label="Phone"
-        value={formData.phone}
-        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-      />
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
-        <select
-          value={formData.role}
-          onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-          className="input-field"
-          required
-        >
-          <option value="agent">Agent</option>
-          <option value="manager">Manager</option>
-          <option value="org_admin">Org Admin</option>
-          <option value="viewer">Viewer</option>
-        </select>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Personal Information */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium text-gray-900">Personal Information</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Input
+            label="Full Name"
+            placeholder="John Doe"
+            value={formData.fullName}
+            onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+            error={errors.name}
+            required
+          />
+          <div></div>
+          
+          <Input
+            label="First Name"
+            placeholder="John"
+            value={formData.firstName}
+            onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+          />
+          <Input
+            label="Last Name"
+            placeholder="Doe"
+            value={formData.lastName}
+            onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Input
+            label="Email *"
+            type="email"
+            placeholder="john@example.com"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            error={errors.email}
+            required
+          />
+          <Input
+            label="Phone"
+            placeholder="+1 (555) 123-4567"
+            value={formData.phone}
+            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+          />
+        </div>
       </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-        <select
-          value={formData.status}
-          onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-          className="input-field"
-          required
-        >
-          <option value="active">Active</option>
-          <option value="suspended">Suspended</option>
-        </select>
+
+      {/* Account Information */}
+      <div className="space-y-4 border-t pt-6">
+        <h3 className="text-lg font-medium text-gray-900">Account Information</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Role *</label>
+            <select
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+              className="input-field"
+              required
+            >
+              <option value="super_admin">Super Admin</option>
+              <option value="org_admin">Organization Admin</option>
+              <option value="manager">Manager</option>
+              <option value="agent">Agent</option>
+              <option value="viewer">Viewer</option>
+            </select>
+            <p className="mt-1 text-xs text-gray-500">
+              {formData.role === 'super_admin' && 'Full platform access across all organizations'}
+              {formData.role === 'org_admin' && 'Full access within assigned organization'}
+              {formData.role === 'manager' && 'Team management and oversight'}
+              {formData.role === 'agent' && 'Individual ticket and call management'}
+              {formData.role === 'viewer' && 'Read-only access to tickets and calls'}
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+            <select
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              className="input-field"
+              required
+            >
+              <option value="active">Active</option>
+              <option value="suspended">Suspended</option>
+            </select>
+          </div>
+        </div>
+
+        {formData.role !== 'super_admin' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Organization *</label>
+            <select
+              value={formData.organizationId}
+              onChange={(e) => setFormData({ ...formData, organizationId: e.target.value })}
+              className="input-field"
+              required
+              error={errors.organization}
+            >
+              <option value="">Select Organization</option>
+              {organizations.map((org) => (
+                <option key={org.id || org._id} value={org.id || org._id}>
+                  {org.name}
+                </option>
+              ))}
+            </select>
+            {errors.organization && (
+              <p className="mt-1 text-sm text-red-600">{errors.organization}</p>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Password Section (for new users only) */}
+      {!isEdit && (
+        <div className="space-y-4 border-t pt-6">
+          <h3 className="text-lg font-medium text-gray-900">Login Credentials</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Input
+                label="Password *"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Enter secure password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                error={errors.password}
+                required
+              />
+              <p className="mt-1 text-xs text-gray-500">Minimum 6 characters</p>
+            </div>
+            
+            <div>
+              <Input
+                label="Confirm Password *"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Confirm password"
+                value={formData.confirmPassword}
+                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                error={errors.confirmPassword}
+                required
+              />
+            </div>
+          </div>
+
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={showPassword}
+              onChange={(e) => setShowPassword(e.target.checked)}
+              className="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+            />
+            <span className="ml-2 text-sm text-gray-600">Show passwords</span>
+          </label>
+        </div>
+      )}
+
       <Modal.Footer>
         <Button type="button" variant="ghost" onClick={onClose} disabled={loading}>
           Cancel
         </Button>
         <Button type="submit" loading={loading} disabled={loading}>
-          {loading ? 'Saving...' : (isEdit ? 'Update' : 'Create')} User
+          {loading ? 'Saving...' : (isEdit ? 'Update User' : 'Create User')}
         </Button>
       </Modal.Footer>
     </form>
