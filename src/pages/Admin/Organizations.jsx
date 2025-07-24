@@ -32,34 +32,8 @@ const Organizations = () => {
       setLoading(true);
       let response;
       
-      // Test API connection first
-      console.log('🔍 Testing API connection before fetching organizations...');
-      try {
-        await organizationService.testConnection();
-        console.log('✅ API connection verified');
-      } catch (connectionError) {
-        console.error('❌ API connection failed:', connectionError);
-        toast.error('Backend server is temporarily unavailable. Using mock data until server is restored.');
-        
-        // Provide mock data so the UI doesn't break
-        setOrganizations([
-          {
-            id: 'mock-1',
-            name: 'Demo Organization',
-            domain: 'demo.example.com',
-            status: 'active',
-            plan: 'basic',
-            users: 5,
-            billing: { amount: 29, period: 'month' },
-            createdAt: new Date().toLocaleDateString(),
-            lastActive: 'Today',
-            settings: {},
-            description: 'Demo organization while backend is being restored'
-          }
-        ]);
-        setLoading(false);
-        return;
-      }
+      // Skip the problematic testConnection and proceed directly
+      console.log('🔍 Proceeding directly to fetch organizations...');
       
       if (user?.role === 'super_admin') {
         console.log('🔍 User is super_admin, fetching all organizations');
@@ -186,7 +160,7 @@ const Organizations = () => {
                   const directResponse = await fetch('https://calltrackerpro-backend.vercel.app/health');
                   const directData = await directResponse.json();
                   console.log('✅ Direct fetch successful:', directData);
-                  toast.success('✅ Direct fetch successful!');
+                  toast.success('✅ Backend connection successful via direct fetch!');
                 } catch (directError) {
                   console.error('❌ Direct fetch failed:', directError);
                   toast.error('❌ Direct fetch failed: ' + directError.message);
