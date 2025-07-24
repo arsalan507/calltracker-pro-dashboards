@@ -96,7 +96,7 @@ const DashboardRoutes = () => {
 
         {/* Admin Routes - Super Admin only */}
         <Route 
-          path="admin" 
+          path="admin/*" 
           element={
             <ProtectedRoute requireSuperAdmin={true}>
               <Routes>

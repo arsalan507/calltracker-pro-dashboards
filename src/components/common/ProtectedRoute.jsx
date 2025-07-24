@@ -12,6 +12,7 @@ const ProtectedRoute = ({
   const auth = useAuth();
   const { isAuthenticated, isLoading, user } = auth;
   const location = useLocation();
+  
 
   if (isLoading) {
     return (

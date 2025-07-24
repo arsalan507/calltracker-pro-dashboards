@@ -1,6 +1,15 @@
 import api from './api';
 
 export const organizationService = {
+  async getAllOrganizations(params = {}) {
+    try {
+      const response = await api.get('/organizations', { params });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   async getOrganization(orgId) {
     try {
       const response = await api.get(`/organizations/${orgId}`);
