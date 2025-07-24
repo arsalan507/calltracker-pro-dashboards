@@ -11,7 +11,7 @@ export const organizationService = {
       // Also test super admin endpoint availability
       try {
         console.log('🔍 Testing super admin endpoints...');
-        const superAdminResponse = await api.get('/super-admin/organizations');
+        const superAdminResponse = await api.get('/api/super-admin/organizations');
         console.log('✅ Super admin endpoints available:', superAdminResponse);
         return { ...response, superAdminAvailable: true };
       } catch (superAdminError) {
@@ -27,7 +27,7 @@ export const organizationService = {
   async getAllOrganizations(params = {}) {
     try {
       console.log('📡 Fetching all organizations from super admin endpoint');
-      const response = await api.get('/super-admin/organizations', { params });
+      const response = await api.get('/api/super-admin/organizations', { params });
       console.log('📡 Organizations fetched successfully:', response);
       return response;
     } catch (error) {
@@ -84,7 +84,7 @@ export const organizationService = {
       };
       
       console.log('📡 Making API call to create organization:', organizationData);
-      const response = await api.post('/super-admin/organizations', organizationData);
+      const response = await api.post('/api/super-admin/organizations', organizationData);
       console.log('✅ Organization created successfully:', response);
       
       return response;
@@ -98,7 +98,7 @@ export const organizationService = {
     try {
       console.log('🗑️ Deleting organization via super admin endpoint:', orgId);
       // The backend requires confirmDelete: true for safety
-      const response = await api.delete(`/super-admin/organizations/${orgId}`, {
+      const response = await api.delete(`/api/super-admin/organizations/${orgId}`, {
         data: { confirmDelete: true }
       });
       console.log('✅ Organization deleted successfully:', response);
@@ -112,7 +112,7 @@ export const organizationService = {
   async updateOrganization(orgId, data) {
     try {
       console.log('✏️ Updating organization via super admin endpoint:', orgId, data);
-      const response = await api.put(`/super-admin/organizations/${orgId}`, data);
+      const response = await api.put(`/api/super-admin/organizations/${orgId}`, data);
       console.log('✅ Organization updated successfully:', response);
       return response;
     } catch (error) {
