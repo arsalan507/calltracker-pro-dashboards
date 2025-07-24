@@ -49,17 +49,22 @@ const Organizations = () => {
       const transformedOrgs = response?.data?.map(backendOrg => ({
         id: backendOrg._id || backendOrg.id,
         name: backendOrg.name,
-        domain: backendOrg.domain || `${backendOrg.name.toLowerCase()}.com`,
+        domain: backendOrg.domain,
         status: backendOrg.isActive ? 'active' : 'suspended',
         plan: backendOrg.plan || 'basic',
         users: backendOrg.userCount || 0,
         billing: {
-          amount: backendOrg.billing?.amount || 0,
-          period: backendOrg.billing?.period || 'month'
+          amount: backendOrg.subscription?.plan === 'basic' ? 29 : 
+                  backendOrg.subscription?.plan === 'professional' ? 99 : 299,
+          period: 'month'
         },
         createdAt: new Date(backendOrg.createdAt).toLocaleDateString(),
         lastActive: backendOrg.lastActivityAt ? new Date(backendOrg.lastActivityAt).toLocaleDateString() : 'Never',
-        settings: backendOrg.settings || {}
+        settings: backendOrg.settings || {},
+        owner: backendOrg.owner ? {
+          name: `${backendOrg.owner.firstName} ${backendOrg.owner.lastName}`,
+          email: backendOrg.owner.email
+        } : null
       })) || [];
 
       setOrganizations(transformedOrgs);
@@ -428,15 +433,51 @@ const OrganizationForm = ({ organization, isEdit, onClose, onSuccess }) => {
         await organizationService.updateOrganization(organization.id, orgData);
         toast.success('Organization updated successfully');
       } else {
-        await organizationService.createOrganization(orgData);
-        toast.success('Organization created successfully! You can now create users for this organization.');
+        console.log('🏢 Creating organization with data:', orgData);
+        const response = await organizationService.createOrganization(orgData);
+        console.log('✅ Organization created successfully:', response);
+        
+        // Show success message with admin user credentials
+        const adminUser = response.data.adminUser;
+        toast.success(
+          `Organization "${response.data.name}" created successfully!\n\n` +
+          `Admin User Created:\n` +
+          `Email: ${adminUser.email}\n` +
+          `Password: ${adminUser.tempPassword}\n\n` +
+          `Please share these credentials with the organization admin.`,
+          { 
+            duration: 8000,
+            style: {
+              maxWidth: '500px',
+              whiteSpace: 'pre-line'
+            }
+          }
+        );
       }
       
       onSuccess(); // Refresh the organizations list
       onClose(); // Close the modal
     } catch (error) {
-      console.error('Error saving organization:', error);
-      toast.error(error.response?.data?.message || error.message || `Failed to ${isEdit ? 'update' : 'create'} organization`);
+      console.error('❌ Error saving organization:', error);
+      
+      // Provide detailed error information
+      let errorMessage = `Failed to ${isEdit ? 'update' : 'create'} organization`;
+      
+      if (error.response) {
+        // Server responded with error status
+        console.error('Server response error:', error.response);
+        errorMessage = error.response.data?.message || `Server error: ${error.response.status}`;
+      } else if (error.request) {
+        // Request was made but no response received
+        console.error('Network error:', error.request);
+        errorMessage = 'Network error: Unable to connect to server. Please check if the backend server is running.';
+      } else {
+        // Something else happened
+        console.error('Request setup error:', error.message);
+        errorMessage = error.message || errorMessage;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
