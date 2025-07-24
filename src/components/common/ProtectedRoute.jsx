@@ -3,8 +3,14 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import LoadingSpinner from './LoadingSpinner';
 
-const ProtectedRoute = ({ children, requireSuperAdmin = false }) => {
-  const { isAuthenticated, isLoading, user } = useAuth();
+const ProtectedRoute = ({ 
+  children, 
+  requireSuperAdmin = false, 
+  allowedRoles = [],
+  requirePermission = null 
+}) => {
+  const auth = useAuth();
+  const { isAuthenticated, isLoading, user } = auth;
   const location = useLocation();
 
   if (isLoading) {
@@ -19,11 +25,25 @@ const ProtectedRoute = ({ children, requireSuperAdmin = false }) => {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/admin/login" state={{ from: location }} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // Check for super admin requirement (legacy support)
   if (requireSuperAdmin && user?.role !== 'super_admin') {
     return <Navigate to="/unauthorized" replace />;
+  }
+
+  // Check for specific roles
+  if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  // Check for specific permissions using auth context methods
+  if (requirePermission) {
+    const hasPermission = auth[requirePermission] && auth[requirePermission]();
+    if (!hasPermission) {
+      return <Navigate to="/unauthorized" replace />;
+    }
   }
 
   return children;

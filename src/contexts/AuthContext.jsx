@@ -114,7 +114,26 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     clearError,
+    // Role checking methods
     isSuperAdmin: () => state.user?.role === 'super_admin',
+    isOrgAdmin: () => state.user?.role === 'org_admin',
+    isManager: () => state.user?.role === 'manager',
+    isAgent: () => state.user?.role === 'agent',
+    isViewer: () => state.user?.role === 'viewer',
+    // Permission checking methods
+    canManageAllOrganizations: () => state.user?.role === 'super_admin',
+    canManageOrganization: () => ['super_admin', 'org_admin'].includes(state.user?.role),
+    canManageTeam: () => ['super_admin', 'org_admin', 'manager'].includes(state.user?.role),
+    canViewAllTickets: () => ['super_admin', 'org_admin', 'manager'].includes(state.user?.role),
+    canCreateTickets: () => ['super_admin', 'org_admin', 'manager', 'agent'].includes(state.user?.role),
+    canEditTickets: () => ['super_admin', 'org_admin', 'manager', 'agent'].includes(state.user?.role),
+    canDeleteTickets: () => ['super_admin', 'org_admin', 'manager'].includes(state.user?.role),
+    canViewAnalytics: () => ['super_admin', 'org_admin', 'manager'].includes(state.user?.role),
+    canExportData: () => ['super_admin', 'org_admin', 'manager'].includes(state.user?.role),
+    // Get user permissions
+    getUserRole: () => state.user?.role,
+    getOrganizationId: () => state.user?.organizationId,
+    getUserId: () => state.user?.id || state.user?._id,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
