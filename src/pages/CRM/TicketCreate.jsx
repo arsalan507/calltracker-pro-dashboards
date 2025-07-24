@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Card, Button, Input, Modal } from '../../components/common';
+import { Card, Button, Input } from '../../components/common';
 import { ticketService } from '../../services/ticketService';
 import toast from 'react-hot-toast';
 import {
@@ -12,9 +12,7 @@ import {
   EnvelopeIcon,
   TagIcon,
   CalendarIcon,
-  ExclamationTriangleIcon,
   DocumentTextIcon,
-  ClockIcon,
   ArrowLeftIcon
 } from '@heroicons/react/24/outline';
 

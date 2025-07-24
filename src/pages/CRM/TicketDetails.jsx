@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -8,7 +8,6 @@ import toast from 'react-hot-toast';
 import {
   ArrowLeftIcon,
   PencilIcon,
-  ClockIcon,
   UserIcon,
   PhoneIcon,
   EnvelopeIcon
@@ -21,11 +20,7 @@ const TicketDetails = () => {
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchTicket();
-  }, [id]);
-
-  const fetchTicket = async () => {
+  const fetchTicket = useCallback(async () => {
     try {
       setLoading(true);
       const response = await ticketService.getTicket(id);
@@ -37,7 +32,11 @@ const TicketDetails = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, navigate]);
+
+  useEffect(() => {
+    fetchTicket();
+  }, [fetchTicket]);
 
   if (loading) {
     return (

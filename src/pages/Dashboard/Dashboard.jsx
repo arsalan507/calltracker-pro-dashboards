@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -13,7 +13,6 @@ import {
   BellIcon,
   ChartBarIcon,
   UsersIcon,
-  ClockIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
   ArrowTrendingUpIcon,
@@ -26,9 +25,9 @@ const Dashboard = () => {
     getUserRole, 
     canViewAllTickets, 
     canViewAnalytics,
-    isSuperAdmin,
-    isOrgAdmin,
-    isManager
+    // isSuperAdmin,
+    // isOrgAdmin,
+    // isManager
   } = useAuth();
   
   const [dashboardData, setDashboardData] = useState({
@@ -42,11 +41,7 @@ const Dashboard = () => {
 
   const userRole = getUserRole();
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, [user]);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setDashboardData(prev => ({ ...prev, loading: true }));
 
@@ -113,7 +108,11 @@ const Dashboard = () => {
       toast.error('Failed to load dashboard data');
       setDashboardData(prev => ({ ...prev, loading: false }));
     }
-  };
+  }, [canViewAllTickets]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   if (dashboardData.loading) {
     return (

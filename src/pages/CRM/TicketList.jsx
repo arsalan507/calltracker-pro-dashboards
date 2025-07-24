@@ -27,8 +27,8 @@ import {
 
 const TicketList = () => {
   const { 
-    getUserRole, 
-    getUserId,
+    // getUserRole, 
+    // getUserId,
     canViewAllTickets,
     canCreateTickets,
     canEditTickets,
@@ -66,8 +66,8 @@ const TicketList = () => {
   const [showExportModal, setShowExportModal] = useState(false);
   const [bulkActionModal, setBulkActionModal] = useState(null);
 
-  const userRole = getUserRole();
-  const userId = getUserId();
+  // const userRole = getUserRole();
+  // const userId = getUserId();
 
   useEffect(() => {
     fetchTickets();
@@ -138,13 +138,13 @@ const TicketList = () => {
     }
   };
 
-  const handleSelectAll = (isSelected) => {
-    if (isSelected) {
-      setSelectedTickets(tickets.map(ticket => ticket.id || ticket._id));
-    } else {
-      setSelectedTickets([]);
-    }
-  };
+  // const handleSelectAll = (isSelected) => {
+  //   if (isSelected) {
+  //     setSelectedTickets(tickets.map(ticket => ticket.id || ticket._id));
+  //   } else {
+  //     setSelectedTickets([]);
+  //   }
+  // };
 
   const handleBulkAction = async (action, data = {}) => {
     if (selectedTickets.length === 0) {
