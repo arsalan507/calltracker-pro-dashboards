@@ -556,12 +556,19 @@ const OrganizationForm = ({ organization, isEdit, onClose, onSuccess }) => {
         console.log('✅ Organization created successfully:', response);
         
         // Show success message with admin user credentials
-        const adminUser = response.data.adminUser;
-        const createdOrg = response.data.organization;
+        console.log('🔍 Full response structure:', JSON.stringify(response, null, 2));
+        
+        const adminUser = response.data?.adminUser || response.data?.data?.adminUser;
+        const createdOrg = response.data?.organization || response.data?.data?.organization || response.data;
+        
+        // Use safe property access
+        const orgName = createdOrg?.name || orgData.name || 'Organization';
+        const adminEmail = adminUser?.email || `admin@${orgData.domain}`;
+        
         toast.success(
-          `Organization "${createdOrg.name}" created successfully!\n\n` +
+          `Organization "${orgName}" created successfully!\n\n` +
           `Admin User Created:\n` +
-          `Email: ${adminUser.email}\n` +
+          `Email: ${adminEmail}\n` +
           `Password: TempPassword123!\n\n` +
           `Please share these credentials with the organization admin.`,
           { 
