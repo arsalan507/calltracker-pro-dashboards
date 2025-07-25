@@ -200,9 +200,35 @@ const Organizations = () => {
                   return;
                 }
 
-                // Test 3: Test authentication with super admin endpoint
+                // Test 3: Test new backend debug endpoint
                 try {
-                  console.log('🧪 Test 2: Super admin endpoint test');
+                  console.log('🧪 Test 2: Backend debug endpoint test');
+                  const debugResponse = await fetch('https://calltrackerpro-backend.vercel.app/api/super-admin/debug-auth', {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${authToken}`,
+                      'Content-Type': 'application/json'
+                    }
+                  });
+                  
+                  console.log('🔍 Debug endpoint status:', debugResponse.status);
+                  const debugData = await debugResponse.json();
+                  console.log('🔍 Debug endpoint response:', debugData);
+                  
+                  if (debugResponse.ok) {
+                    toast.success('✅ Debug endpoint working - check console for details');
+                  } else {
+                    console.error('❌ Debug endpoint error:', debugData);
+                    toast.error('❌ Debug endpoint failed - check console');
+                  }
+                } catch (debugError) {
+                  console.error('❌ Debug endpoint test failed:', debugError);
+                  console.log('🔍 Fallback: Testing original super admin endpoint...');
+                }
+
+                // Test 4: Test authentication with super admin endpoint
+                try {
+                  console.log('🧪 Test 3: Super admin endpoint test');
                   const response = await fetch('https://calltrackerpro-backend.vercel.app/api/super-admin/organizations', {
                     method: 'GET',
                     headers: {
@@ -216,13 +242,13 @@ const Organizations = () => {
                   console.log('📡 Super admin response body:', responseText);
                   
                   if (response.status === 200) {
-                    toast.success('✅ Authentication successful!');
+                    toast.success('✅ Authentication successful! Organization management is working!');
                   } else if (response.status === 401) {
                     toast.error('❌ Authentication failed - token invalid');
                   } else if (response.status === 403) {
                     toast.error('❌ Access denied - insufficient permissions');
                   } else if (response.status === 500) {
-                    toast.error('❌ Server authentication error - check backend logs');
+                    toast.error('❌ Server authentication error - check enhanced backend logs');
                   } else {
                     toast.error(`❌ Unexpected response: ${response.status}`);
                   }
