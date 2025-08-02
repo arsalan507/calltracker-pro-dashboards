@@ -116,47 +116,98 @@ export const userService = {
 
   async createUser(userData) {
     try {
-      console.log('👤 Creating user with data:', userData);
-      console.log('🔍 Trying to create user via /api/users (redirects to /api/super-admin/users)...');
+      console.log('👤 Creating user with super admin endpoint...');
+      console.log('👤 User data:', userData);
       
-      // Debug authentication
+      // Use direct fetch with super admin endpoint
       const authToken = localStorage.getItem('authToken');
-      console.log('🔐 Auth token exists:', !!authToken);
-      console.log('🔐 Auth token length:', authToken?.length || 0);
-      
-      const response = await api.post('/users', userData);
-      console.log('✅ User created successfully:', response);
-      return response;
-    } catch (error) {
-      console.error('❌ User creation failed:', error);
-      console.error('📡 Full error details:', {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        headers: error.response?.headers,
-        message: error.message
-      });
-      
-      // Enhanced error messages based on status
-      if (error.response?.status === 404) {
-        throw new Error('User creation endpoint not found. Backend redirect may not be working.');
-      } else if (error.response?.status === 500) {
-        throw new Error('Server error in user creation. Check backend logs for details.');
-      } else if (error.response?.status === 401) {
-        throw new Error('Authentication failed. Please log in again.');
-      } else if (error.response?.status === 403) {
-        throw new Error('Access denied. You need super admin privileges.');
+      if (!authToken) {
+        throw new Error('No authentication token found. Please log in again.');
       }
       
+      console.log('📡 Creating user at URL: https://calltrackerpro-backend.vercel.app/api/super-admin/users');
+      
+      const response = await fetch('https://calltrackerpro-backend.vercel.app/api/super-admin/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify(userData)
+      });
+      
+      console.log('📡 User creation response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ HTTP Error:', response.status, errorText);
+        
+        if (response.status === 401) {
+          throw new Error('Authentication failed. Please log in again.');
+        } else if (response.status === 403) {
+          throw new Error('Access denied. You need super admin privileges.');
+        } else if (response.status === 404) {
+          throw new Error('User creation endpoint not found.');
+        } else {
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+      }
+      
+      const result = await response.json();
+      console.log('✅ User created successfully:', result);
+      return { data: result.data || result };
+    } catch (error) {
+      console.error('❌ Error creating user:', error);
       throw error;
     }
   },
 
   async updateUser(userId, userData) {
     try {
-      const response = await api.put(`/users/${userId}`, userData);
-      return response;
+      console.log('👤 Updating user with super admin endpoint...');
+      console.log('👤 User ID:', userId);
+      console.log('👤 User data:', userData);
+      
+      // Use direct fetch with super admin endpoint
+      const authToken = localStorage.getItem('authToken');
+      if (!authToken) {
+        throw new Error('No authentication token found. Please log in again.');
+      }
+      
+      const url = `https://calltrackerpro-backend.vercel.app/api/super-admin/users/${userId}`;
+      console.log('📡 Updating user at URL:', url);
+      
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify(userData)
+      });
+      
+      console.log('📡 User update response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ HTTP Error:', response.status, errorText);
+        
+        if (response.status === 401) {
+          throw new Error('Authentication failed. Please log in again.');
+        } else if (response.status === 403) {
+          throw new Error('Access denied. You need super admin privileges.');
+        } else if (response.status === 404) {
+          throw new Error('User or update endpoint not found.');
+        } else {
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+      }
+      
+      const result = await response.json();
+      console.log('✅ User updated successfully:', result);
+      return { data: result.data || result };
     } catch (error) {
+      console.error('❌ Error updating user:', error);
       throw error;
     }
   },
@@ -181,9 +232,48 @@ export const userService = {
 
   async deleteUser(userId) {
     try {
-      const response = await api.delete(`/users/${userId}`);
-      return response;
+      console.log('👤 Deleting user with super admin endpoint...');
+      console.log('👤 User ID:', userId);
+      
+      // Use direct fetch with super admin endpoint
+      const authToken = localStorage.getItem('authToken');
+      if (!authToken) {
+        throw new Error('No authentication token found. Please log in again.');
+      }
+      
+      const url = `https://calltrackerpro-backend.vercel.app/api/super-admin/users/${userId}`;
+      console.log('📡 Deleting user at URL:', url);
+      
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+      
+      console.log('📡 User deletion response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ HTTP Error:', response.status, errorText);
+        
+        if (response.status === 401) {
+          throw new Error('Authentication failed. Please log in again.');
+        } else if (response.status === 403) {
+          throw new Error('Access denied. You need super admin privileges.');
+        } else if (response.status === 404) {
+          throw new Error('User or delete endpoint not found.');
+        } else {
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+      }
+      
+      const result = await response.json();
+      console.log('✅ User deleted successfully:', result);
+      return { data: result.data || result };
     } catch (error) {
+      console.error('❌ Error deleting user:', error);
       throw error;
     }
   },
