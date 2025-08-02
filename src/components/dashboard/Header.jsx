@@ -23,7 +23,8 @@ const Header = ({ onMenuClick }) => {
 
   // Get proper display name and role
   const displayName = user?.name || 
-                     (user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : null) ||
+                     (user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}`.trim() : null) ||
+                     user?.firstName?.trim() ||
                      user?.email?.split('@')[0] || 
                      'User';
   
