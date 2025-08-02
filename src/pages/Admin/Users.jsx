@@ -57,7 +57,26 @@ const Users = () => {
         
         // Use role-based API client
         const apiClient = createRoleBasedApiClient(user);
-        const usersResponse = await apiClient.getUsers();
+        
+        // Fetch both users and organizations for name mapping
+        const [usersResponse, organizationsResponse] = await Promise.all([
+          apiClient.getUsers(),
+          apiClient.getOrganizations().catch(() => ({ data: [] })) // Fallback if orgs fail
+        ]);
+        
+        console.log('👥 Users response:', usersResponse);
+        console.log('🏢 Organizations response:', organizationsResponse);
+        
+        // Create organization ID to name mapping
+        const orgMap = {};
+        if (organizationsResponse?.data) {
+          organizationsResponse.data.forEach(org => {
+            if (org._id || org.id) {
+              orgMap[org._id || org.id] = org.name;
+            }
+          });
+        }
+        console.log('🗺️ Organization mapping:', orgMap);
 
         // Transform backend user data to match frontend structure
         const transformedUsers = usersResponse?.data?.map(backendUser => {
@@ -68,13 +87,18 @@ const Users = () => {
           console.log('👤 User last login:', backendUser.lastLoginAt);
           console.log('👤 User created:', backendUser.createdAt);
           
-          // Handle organization name - could be string ID or object
-          let organizationName = 'Unknown';
-          if (typeof backendUser.organizationId === 'object' && backendUser.organizationId?.name) {
-            organizationName = backendUser.organizationId.name;
-          } else if (typeof backendUser.organizationId === 'string') {
-            // If it's just an ID, we'll need to look it up or use a default
-            organizationName = backendUser.organization?.name || 'Organization';
+          // Handle organization name using the mapping
+          let organizationName = 'No Organization';
+          if (backendUser.organizationId) {
+            if (typeof backendUser.organizationId === 'object' && backendUser.organizationId?.name) {
+              organizationName = backendUser.organizationId.name;
+            } else if (typeof backendUser.organizationId === 'string') {
+              // Look up the organization name from our mapping
+              organizationName = orgMap[backendUser.organizationId] || `Org-${backendUser.organizationId.slice(-8)}`;
+            }
+          } else {
+            // No organization (like super admin)
+            organizationName = backendUser.role === 'super_admin' ? 'System Admin' : 'No Organization';
           }
           
           // Handle user name properly
@@ -84,15 +108,15 @@ const Users = () => {
                           backendUser.email?.split('@')[0] ||
                           'Unknown User';
           
-          // Handle login statistics
+          // Handle login statistics - backend doesn't track this yet
           const loginHistory = backendUser.loginHistory || [];
-          const loginCount = loginHistory.length || backendUser.loginCount || 0;
+          const loginCount = loginHistory.length || backendUser.loginCount || 'N/A';
           
-          // Handle last login date
-          const lastLoginDate = backendUser.lastLoginAt || backendUser.lastLogin;
+          // Handle last login date - backend doesn't track this yet  
+          const lastLoginDate = backendUser.lastLoginAt || backendUser.lastLogin || backendUser.updatedAt;
           const lastActive = lastLoginDate ? 
-                           new Date(lastLoginDate).toLocaleString() : 
-                           'Never';
+                           new Date(lastLoginDate).toLocaleDateString() : 
+                           'Not tracked';
           
           return {
             id: backendUser._id || backendUser.id,
@@ -113,16 +137,16 @@ const Users = () => {
             loginCount: loginCount,
             permissions: Object.keys(backendUser.permissions || {}).filter(key => backendUser.permissions[key]),
             activity: {
-              sessionsToday: backendUser.sessionsToday || 0,
+              sessionsToday: backendUser.sessionsToday || 'N/A',
               avgSessionTime: backendUser.avgSessionTime || 'N/A',
-              totalCalls: backendUser.totalCalls || backendUser.callCount || 0,
+              totalCalls: backendUser.totalCalls || backendUser.callCount || 'N/A',
               lastLogin: lastLoginDate
             },
             analytics: {
-              callsThisMonth: backendUser.callsThisMonth || backendUser.monthlyCallCount || 0,
-              successRate: backendUser.successRate || 0,
-              avgCallDuration: backendUser.avgCallDuration || '0m',
-              conversionRate: backendUser.conversionRate || 0
+              callsThisMonth: backendUser.callsThisMonth || backendUser.monthlyCallCount || 'N/A',
+              successRate: backendUser.successRate ? `${backendUser.successRate}%` : 'N/A',
+              avgCallDuration: backendUser.avgCallDuration || 'N/A',
+              conversionRate: backendUser.conversionRate ? `${backendUser.conversionRate}%` : 'N/A'
             }
           };
         }) || [];
