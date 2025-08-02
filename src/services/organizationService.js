@@ -154,7 +154,17 @@ export const organizationService = {
       
       const result = await response.json();
       console.log('📡 Users fetched successfully:', result);
-      return { data: result.data || result }; // Handle different response formats
+      console.log('📡 Users data array:', result.data);
+      console.log('📡 Pagination info:', result.pagination);
+      console.log('📡 Organization info:', result.organization);
+      
+      return {
+        data: result.data || [], // Backend returns users directly in 'data' array
+        pagination: result.pagination,
+        organization: result.organization,
+        message: result.message,
+        success: result.success
+      };
     } catch (error) {
       console.error('📡 Error fetching organization users:', error);
       throw error;

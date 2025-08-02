@@ -761,9 +761,12 @@ const UserManagement = ({ organization }) => {
         
         const response = await organizationService.getOrganizationUsers(organization.id);
         console.log('👥 Users response:', response);
+        console.log('👥 Users success status:', response.success);
+        console.log('👥 Users message:', response.message);
         
-        // Handle different response formats
-        const usersData = response?.data?.users || response?.data || response?.users || [];
+        // Backend returns users directly in response.data array
+        const usersData = response?.data || [];
+        console.log('👥 Parsed users data:', usersData);
         setUsers(usersData);
       } catch (error) {
         console.error('❌ Error fetching users:', error);
@@ -840,12 +843,14 @@ const UserManagement = ({ organization }) => {
       ) : (
         <div className="space-y-3">
           {users.map(user => {
-            // Handle different user data formats
+            // Handle backend user data format
             const userId = user._id || user.id;
-            const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User';
+            const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.name || 'Unknown User';
             const userEmail = user.email;
             const userRole = user.role || 'user';
-            const userStatus = user.status || user.isActive !== false ? 'active' : 'inactive';
+            const userStatus = user.isActive ? 'active' : 'inactive'; // Backend uses isActive boolean
+            
+            console.log('👥 Processing user:', { userId, userName, userEmail, userRole, userStatus, isActive: user.isActive });
             
             return (
               <div key={userId} className="flex items-center justify-between p-3 border rounded-lg">
