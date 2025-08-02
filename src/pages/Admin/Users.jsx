@@ -108,9 +108,18 @@ const Users = () => {
                           backendUser.email?.split('@')[0] ||
                           'Unknown User';
           
-          // Handle login statistics - backend doesn't track this yet
+          // Handle login statistics 
           const loginHistory = backendUser.loginHistory || [];
-          const loginCount = loginHistory.length || backendUser.loginCount || 'N/A';
+          let loginCount = 'N/A';
+          
+          if (loginHistory.length > 0) {
+            loginCount = loginHistory.length;
+          } else if (backendUser.loginCount) {
+            loginCount = backendUser.loginCount;
+          } else if (backendUser.lastLoginAt) {
+            // If user has lastLoginAt but no loginHistory, assume at least 1 login
+            loginCount = 1;
+          }
           
           // Handle last login date - backend doesn't track this yet  
           const lastLoginDate = backendUser.lastLoginAt || backendUser.lastLogin || backendUser.updatedAt;
