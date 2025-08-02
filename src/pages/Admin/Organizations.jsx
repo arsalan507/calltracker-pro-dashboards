@@ -12,11 +12,13 @@ import {
   Cog6ToothIcon
 } from '@heroicons/react/24/outline';
 import { Card, Button, Input, Modal } from '../../components/common';
+import RoleGuard, { ConditionalRender } from '../../components/common/RoleGuard';
 import { organizationService } from '../../services/organizationService';
 import { useAuth } from '../../contexts/AuthContext';
+import { createRoleBasedApiClient, hasPermission, getDashboardRoutes } from '../../utils/roleBasedApi';
 import toast from 'react-hot-toast';
 
-const Organizations = () => {
+const OrganizationsContent = () => {
   const [organizations, setOrganizations] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -30,26 +32,23 @@ const Organizations = () => {
   const fetchOrganizations = useCallback(async () => {
     try {
       setLoading(true);
-      let response;
       
-      // Skip the problematic testConnection and proceed directly
-      console.log('🔍 Proceeding directly to fetch organizations...');
+      console.log('🔍 Fetching organizations with role-based access...');
+      console.log('🔍 User role:', user?.role);
+      console.log('🔍 User organization ID:', user?.organizationId);
       
-      if (user?.role === 'super_admin') {
-        console.log('🔍 User is super_admin, fetching all organizations');
-        // Super admin can see all organizations
-        response = await organizationService.getAllOrganizations();
-      } else if (user?.organizationId) {
-        console.log('🔍 User is org admin, fetching their organization');
-        // Regular admin sees only their organization
-        const orgResponse = await organizationService.getOrganization(user.organizationId);
-        response = { data: [orgResponse.data] };
-      } else {
-        console.log('🔍 User has no organization access');
+      // Check if user has permission to view organizations
+      if (!hasPermission(user?.role, 'manage_organization') && !hasPermission(user?.role, 'manage_all_organizations')) {
+        console.log('🚫 Access denied: User does not have permission to view organizations');
+        toast.error('Access denied. You don\'t have permission to view organizations.');
         setOrganizations([]);
         setLoading(false);
         return;
       }
+      
+      // Use role-based API client
+      const apiClient = createRoleBasedApiClient(user);
+      const response = await apiClient.getOrganizations();
 
       // Transform backend organization data to match frontend structure
       const transformedOrgs = response?.data?.map(backendOrg => {
@@ -275,13 +274,15 @@ const Organizations = () => {
               <span>🔍</span>
               <span>Test API</span>
             </Button>
-            <Button
-              onClick={() => handleModal('create')}
-              className="flex items-center space-x-2"
-            >
-              <PlusIcon className="w-5 h-5" />
-              <span>Add Organization</span>
-            </Button>
+            <ConditionalRender permission="manage_all_organizations">
+              <Button
+                onClick={() => handleModal('create')}
+                className="flex items-center space-x-2"
+              >
+                <PlusIcon className="w-5 h-5" />
+                <span>Add Organization</span>
+              </Button>
+            </ConditionalRender>
           </div>
         </div>
       </motion.div>
@@ -749,6 +750,7 @@ const UserManagement = ({ organization }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -757,12 +759,21 @@ const UserManagement = ({ organization }) => {
       try {
         setLoading(true);
         setError(null);
-        console.log('👥 Fetching users for organization:', organization.id);
+        console.log('👥 Fetching users for organization with role-based access:', organization.id);
         
-        const response = await organizationService.getOrganizationUsers(organization.id);
+        // Check if user has permission to view users
+        if (!hasPermission(user?.role, 'view_all_users')) {
+          console.log('🚫 Access denied: User does not have permission to view users');
+          setError('Access denied. You don\'t have permission to view users.');
+          setLoading(false);
+          return;
+        }
+        
+        // Use role-based API client
+        const apiClient = createRoleBasedApiClient(user);
+        const response = await apiClient.getOrganizationUsers(organization.id);
+        
         console.log('👥 Users response:', response);
-        console.log('👥 Users success status:', response.success);
-        console.log('👥 Users message:', response.message);
         
         // Backend returns users directly in response.data array
         const usersData = response?.data || [];
@@ -1029,6 +1040,22 @@ const DeleteConfirmation = ({ organization, onClose, onSuccess }) => {
         </Button>
       </Modal.Footer>
     </div>
+  );
+};
+
+// Main Organizations component with role-based access control
+const Organizations = () => {
+  return (
+    <RoleGuard 
+      permission="manage_organization"
+      fallback={
+        <RoleGuard permission="manage_all_organizations">
+          <OrganizationsContent />
+        </RoleGuard>
+      }
+    >
+      <OrganizationsContent />
+    </RoleGuard>
   );
 };
 

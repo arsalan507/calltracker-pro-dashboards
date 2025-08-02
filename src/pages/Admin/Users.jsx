@@ -24,6 +24,7 @@ import { Card, Button, Input, Modal } from '../../components/common';
 import { userService } from '../../services/userService';
 import { organizationService } from '../../services/organizationService';
 import { useAuth } from '../../contexts/AuthContext';
+import { createRoleBasedApiClient, hasPermission, getDashboardRoutes } from '../../utils/roleBasedApi';
 import toast from 'react-hot-toast';
 
 const Users = () => {
@@ -41,19 +42,22 @@ const Users = () => {
 
   const fetchUsers = useCallback(async () => {
       try {
-        let usersResponse;
+        console.log('👥 Fetching users with role-based access...');
+        console.log('👥 User role:', user?.role);
+        console.log('👥 User organization ID:', user?.organizationId);
         
-        if (user?.role === 'super_admin') {
-          // Super admin can see all users
-          usersResponse = await userService.getAllUsers();
-        } else if (user?.organizationId) {
-          // Organization admin sees only their org users
-          usersResponse = await userService.getOrganizationUsers(user.organizationId);
-        } else {
+        // Check if user has permission to view users
+        if (!hasPermission(user?.role, 'view_all_users')) {
+          console.log('🚫 Access denied: User does not have permission to view users');
+          toast.error('Access denied. You don\'t have permission to view users.');
           setUsers([]);
           setLoading(false);
           return;
         }
+        
+        // Use role-based API client
+        const apiClient = createRoleBasedApiClient(user);
+        const usersResponse = await apiClient.getUsers();
 
         // Transform backend user data to match frontend structure
         const transformedUsers = usersResponse?.data?.map(backendUser => ({
