@@ -60,33 +60,72 @@ const Users = () => {
         const usersResponse = await apiClient.getUsers();
 
         // Transform backend user data to match frontend structure
-        const transformedUsers = usersResponse?.data?.map(backendUser => ({
-          id: backendUser._id,
-          name: backendUser.fullName || `${backendUser.firstName} ${backendUser.lastName}`,
-          email: backendUser.email,
-          phone: backendUser.phone || 'Not provided',
-          avatar: backendUser.avatar,
-          status: backendUser.isActive ? 'active' : 'suspended',
-          role: backendUser.role,
-          organization: backendUser.organizationId?.name || 'Unknown',
-          organizationId: backendUser.organizationId?._id,
-          joinedAt: new Date(backendUser.createdAt).toLocaleDateString(),
-          lastActive: backendUser.lastLoginAt ? new Date(backendUser.lastLoginAt).toLocaleString() : null,
-          loginCount: backendUser.loginHistory?.length || 0,
-          permissions: Object.keys(backendUser.permissions || {}).filter(key => backendUser.permissions[key]),
-          activity: {
-            sessionsToday: 0, // This would need to be calculated from session data
-            avgSessionTime: 'N/A',
-            totalCalls: 0, // This would come from call logs
-            lastLogin: backendUser.lastLoginAt
-          },
-          analytics: {
-            callsThisMonth: 0, // This would be calculated from call logs
-            successRate: 0,
-            avgCallDuration: '0m',
-            conversionRate: 0
+        const transformedUsers = usersResponse?.data?.map(backendUser => {
+          // Debug individual user data
+          console.log('👤 Processing user:', backendUser);
+          console.log('👤 User organization field:', backendUser.organizationId);
+          console.log('👤 User login history:', backendUser.loginHistory);
+          console.log('👤 User last login:', backendUser.lastLoginAt);
+          console.log('👤 User created:', backendUser.createdAt);
+          
+          // Handle organization name - could be string ID or object
+          let organizationName = 'Unknown';
+          if (typeof backendUser.organizationId === 'object' && backendUser.organizationId?.name) {
+            organizationName = backendUser.organizationId.name;
+          } else if (typeof backendUser.organizationId === 'string') {
+            // If it's just an ID, we'll need to look it up or use a default
+            organizationName = backendUser.organization?.name || 'Organization';
           }
-        })) || [];
+          
+          // Handle user name properly
+          const userName = backendUser.fullName || 
+                          `${backendUser.firstName || ''} ${backendUser.lastName || ''}`.trim() ||
+                          backendUser.name ||
+                          backendUser.email?.split('@')[0] ||
+                          'Unknown User';
+          
+          // Handle login statistics
+          const loginHistory = backendUser.loginHistory || [];
+          const loginCount = loginHistory.length || backendUser.loginCount || 0;
+          
+          // Handle last login date
+          const lastLoginDate = backendUser.lastLoginAt || backendUser.lastLogin;
+          const lastActive = lastLoginDate ? 
+                           new Date(lastLoginDate).toLocaleString() : 
+                           'Never';
+          
+          return {
+            id: backendUser._id || backendUser.id,
+            name: userName,
+            email: backendUser.email,
+            phone: backendUser.phone || 'Not provided',
+            avatar: backendUser.avatar,
+            status: backendUser.isActive !== false ? 'active' : 'suspended',
+            role: backendUser.role,
+            organization: organizationName,
+            organizationId: typeof backendUser.organizationId === 'object' ? 
+                          backendUser.organizationId._id : 
+                          backendUser.organizationId,
+            joinedAt: backendUser.createdAt ? 
+                     new Date(backendUser.createdAt).toLocaleDateString() : 
+                     'Unknown',
+            lastActive: lastActive,
+            loginCount: loginCount,
+            permissions: Object.keys(backendUser.permissions || {}).filter(key => backendUser.permissions[key]),
+            activity: {
+              sessionsToday: backendUser.sessionsToday || 0,
+              avgSessionTime: backendUser.avgSessionTime || 'N/A',
+              totalCalls: backendUser.totalCalls || backendUser.callCount || 0,
+              lastLogin: lastLoginDate
+            },
+            analytics: {
+              callsThisMonth: backendUser.callsThisMonth || backendUser.monthlyCallCount || 0,
+              successRate: backendUser.successRate || 0,
+              avgCallDuration: backendUser.avgCallDuration || '0m',
+              conversionRate: backendUser.conversionRate || 0
+            }
+          };
+        }) || [];
 
         setUsers(transformedUsers);
 
