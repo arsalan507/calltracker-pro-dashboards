@@ -116,9 +116,47 @@ export const organizationService = {
 
   async getOrganizationUsers(orgId) {
     try {
-      const response = await api.get(`/organizations/${orgId}/users`);
-      return response;
+      console.log('👥 Fetching users for organization ID:', orgId);
+      
+      // Use direct fetch with super admin endpoint
+      const authToken = localStorage.getItem('authToken');
+      if (!authToken) {
+        throw new Error('No authentication token found. Please log in again.');
+      }
+      
+      const url = `https://calltrackerpro-backend.vercel.app/api/super-admin/organizations/${orgId}/users`;
+      console.log('📡 Fetching users from URL:', url);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+      
+      console.log('📡 Users response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ HTTP Error:', response.status, errorText);
+        
+        if (response.status === 401) {
+          throw new Error('Authentication failed. Please log in again.');
+        } else if (response.status === 403) {
+          throw new Error('Access denied. You need super admin privileges.');
+        } else if (response.status === 404) {
+          throw new Error('Organization users endpoint not found.');
+        } else {
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+      }
+      
+      const result = await response.json();
+      console.log('📡 Users fetched successfully:', result);
+      return { data: result.data || result }; // Handle different response formats
     } catch (error) {
+      console.error('📡 Error fetching organization users:', error);
       throw error;
     }
   },

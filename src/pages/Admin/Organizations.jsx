@@ -52,13 +52,23 @@ const Organizations = () => {
       }
 
       // Transform backend organization data to match frontend structure
-      const transformedOrgs = response?.data?.map(backendOrg => ({
+      const transformedOrgs = response?.data?.map(backendOrg => {
+        // Debug backend organization data
+        console.log('🔍 Raw backend organization data:', backendOrg);
+        console.log('🔍 subscriptionStatus:', backendOrg.subscriptionStatus);
+        console.log('🔍 subscriptionPlan:', backendOrg.subscriptionPlan);
+        console.log('🔍 plan:', backendOrg.plan);
+        console.log('🔍 userCount:', backendOrg.userCount);
+        console.log('🔍 users array:', backendOrg.users);
+        console.log('🔍 isActive field exists:', 'isActive' in backendOrg);
+        
+        return {
         id: backendOrg._id || backendOrg.id,
         name: backendOrg.name,
         domain: backendOrg.domain,
-        status: backendOrg.isActive ? 'active' : 'suspended',
-        plan: backendOrg.plan || 'basic',
-        users: backendOrg.userCount || 0,
+        status: backendOrg.subscriptionStatus || 'pending',
+        plan: backendOrg.subscriptionPlan || backendOrg.plan || 'basic',
+        users: backendOrg.userCount || (backendOrg.users ? backendOrg.users.length : 0),
         billing: {
           amount: backendOrg.plan === 'basic' ? 29 : 
                   backendOrg.plan === 'professional' ? 99 : 299,
@@ -67,8 +77,11 @@ const Organizations = () => {
         createdAt: backendOrg.createdAt ? new Date(backendOrg.createdAt).toLocaleDateString() : 'N/A',
         lastActive: backendOrg.lastActivityAt ? new Date(backendOrg.lastActivityAt).toLocaleDateString() : 'Never',
         settings: backendOrg.settings || {},
-        description: backendOrg.description || ''
-      })) || [];
+        description: backendOrg.description || '',
+        // Store original backend data for debugging
+        _rawData: backendOrg
+      };
+      }) || [];
 
       setOrganizations(transformedOrgs);
     } catch (error) {
@@ -733,11 +746,80 @@ const OrganizationDetails = ({ organization }) => (
 
 // User Management Component
 const UserManagement = ({ organization }) => {
-  const mockUsers = [
-    { id: 1, name: 'John Doe', email: 'john@example.com', role: 'admin', status: 'active' },
-    { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'user', status: 'active' },
-    { id: 3, name: 'Bob Johnson', email: 'bob@example.com', role: 'manager', status: 'pending' }
-  ];
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (!organization?.id) return;
+      
+      try {
+        setLoading(true);
+        setError(null);
+        console.log('👥 Fetching users for organization:', organization.id);
+        
+        const response = await organizationService.getOrganizationUsers(organization.id);
+        console.log('👥 Users response:', response);
+        
+        // Handle different response formats
+        const usersData = response?.data?.users || response?.data || response?.users || [];
+        setUsers(usersData);
+      } catch (error) {
+        console.error('❌ Error fetching users:', error);
+        setError(error.message || 'Failed to load users');
+        
+        // Fallback: try to use users from organization data
+        if (organization._rawData?.users) {
+          console.log('🔄 Using users from organization raw data');
+          setUsers(organization._rawData.users);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, [organization]);
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h4 className="text-lg font-semibold">Users in {organization?.name}</h4>
+        </div>
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading users...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h4 className="text-lg font-semibold">Users in {organization?.name}</h4>
+          <Button size="sm">
+            <PlusIcon className="w-4 h-4 mr-2" />
+            Add User
+          </Button>
+        </div>
+        <div className="text-center py-8">
+          <p className="text-red-600">Error: {error}</p>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => window.location.reload()}
+            className="mt-2"
+          >
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -748,25 +830,48 @@ const UserManagement = ({ organization }) => {
           Add User
         </Button>
       </div>
-      <div className="space-y-3">
-        {mockUsers.map(user => (
-          <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg">
-            <div>
-              <p className="font-medium">{user.name}</p>
-              <p className="text-sm text-gray-600">{user.email}</p>
-            </div>
-            <div className="flex items-center space-x-3">
-              <span className="text-sm text-gray-600 capitalize">{user.role}</span>
-              <span className={`px-2 py-1 rounded-full text-xs ${
-                user.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-              }`}>
-                {user.status}
-              </span>
-              <Button variant="ghost" size="sm">Edit</Button>
-            </div>
-          </div>
-        ))}
-      </div>
+      
+      {users.length === 0 ? (
+        <div className="text-center py-8">
+          <UsersIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No users found</h3>
+          <p className="text-gray-600">This organization doesn't have any users yet.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {users.map(user => {
+            // Handle different user data formats
+            const userId = user._id || user.id;
+            const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User';
+            const userEmail = user.email;
+            const userRole = user.role || 'user';
+            const userStatus = user.status || user.isActive !== false ? 'active' : 'inactive';
+            
+            return (
+              <div key={userId} className="flex items-center justify-between p-3 border rounded-lg">
+                <div>
+                  <p className="font-medium">{userName}</p>
+                  <p className="text-sm text-gray-600">{userEmail}</p>
+                  {user.createdAt && (
+                    <p className="text-xs text-gray-400">
+                      Joined: {new Date(user.createdAt).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center space-x-3">
+                  <span className="text-sm text-gray-600 capitalize">{userRole.replace('_', ' ')}</span>
+                  <span className={`px-2 py-1 rounded-full text-xs ${
+                    userStatus === 'active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {userStatus}
+                  </span>
+                  <Button variant="ghost" size="sm">Edit</Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
