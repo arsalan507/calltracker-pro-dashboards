@@ -794,7 +794,7 @@ const UserManagement = ({ organization }) => {
     };
 
     fetchUsers();
-  }, [organization]);
+  }, [organization, user]);
 
   if (loading) {
     return (
