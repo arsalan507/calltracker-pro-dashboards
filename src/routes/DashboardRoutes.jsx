@@ -33,7 +33,19 @@ const DashboardRoutes = () => {
   return (
     <Routes>
       {/* Root redirect based on role */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route 
+        path="/" 
+        element={
+          <Navigate 
+            to={
+              userRole === 'super_admin' ? '/dashboard/admin' : 
+              ['org_admin', 'manager'].includes(userRole) ? '/dashboard/crm/tickets' :
+              '/dashboard'
+            } 
+            replace 
+          />
+        } 
+      />
       
       {/* Dashboard Layout Routes */}
       <Route path="/dashboard" element={<DashboardLayout />}>
@@ -94,11 +106,11 @@ const DashboardRoutes = () => {
           />
         </Route>
 
-        {/* Admin Routes - Super Admin only */}
+        {/* Admin Routes - Super Admin only with smart redirects */}
         <Route 
           path="admin/*" 
           element={
-            <ProtectedRoute requireSuperAdmin={true}>
+            userRole === 'super_admin' ? (
               <Routes>
                 <Route index element={<Navigate to="overview" replace />} />
                 <Route path="overview" element={<Overview />} />
@@ -107,7 +119,15 @@ const DashboardRoutes = () => {
                 <Route path="analytics" element={<Analytics />} />
                 <Route path="settings" element={<Settings />} />
               </Routes>
-            </ProtectedRoute>
+            ) : (
+              <Navigate 
+                to={
+                  ['org_admin', 'manager'].includes(userRole) ? '/dashboard/crm/tickets' :
+                  '/dashboard'
+                } 
+                replace 
+              />
+            )
           } 
         />
 

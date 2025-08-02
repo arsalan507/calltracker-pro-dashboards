@@ -71,6 +71,9 @@ export const AuthProvider = ({ children }) => {
       try {
         if (authService.isAuthenticated()) {
           const user = authService.getStoredUser();
+          console.log('🔐 Auth initialization - stored user:', user);
+          console.log('🔐 User role:', user?.role);
+          console.log('🔐 User organization ID:', user?.organizationId);
           dispatch({ type: 'LOGIN_SUCCESS', payload: { user } });
         }
       } catch (error) {
@@ -87,9 +90,13 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: 'LOGIN_START' });
     try {
       const response = await authService.login(credentials);
+      console.log('🔐 Login success - user data:', response.user);
+      console.log('🔐 Login success - user role:', response.user?.role);
+      console.log('🔐 Login success - user organization ID:', response.user?.organizationId);
       dispatch({ type: 'LOGIN_SUCCESS', payload: response });
       return response;
     } catch (error) {
+      console.error('🔐 Login failed:', error);
       dispatch({ type: 'LOGIN_FAILURE', payload: error.message || 'Login failed' });
       throw error;
     }

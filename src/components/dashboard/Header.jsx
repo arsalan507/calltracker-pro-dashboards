@@ -15,6 +15,22 @@ const Header = ({ onMenuClick }) => {
   const { user, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Debug user data
+  console.log('🔍 Header user data:', user);
+  console.log('🔍 User role:', user?.role);
+  console.log('🔍 User name:', user?.name);
+  console.log('🔍 User firstName/lastName:', user?.firstName, user?.lastName);
+
+  // Get proper display name and role
+  const displayName = user?.name || 
+                     (user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : null) ||
+                     user?.email?.split('@')[0] || 
+                     'User';
+  
+  const displayRole = user?.role ? 
+                     user.role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 
+                     'Unknown Role';
+
   const notifications = [
     { id: 1, title: 'New organization registered', time: '5 minutes ago', unread: true },
     { id: 2, title: 'System backup completed', time: '1 hour ago', unread: false },
@@ -118,7 +134,7 @@ const Header = ({ onMenuClick }) => {
               <UserCircleIcon className="h-8 w-8 text-gray-400" />
               <span className="hidden lg:flex lg:items-center">
                 <span className="ml-1" aria-hidden="true">
-                  {user?.name || 'Super Admin'}
+                  {displayName}
                 </span>
               </span>
             </Menu.Button>
@@ -131,10 +147,11 @@ const Header = ({ onMenuClick }) => {
               leaveFrom="transform opacity-100 scale-100"
               leaveTo="transform opacity-0 scale-95"
             >
-              <Menu.Items className="absolute right-0 z-10 mt-2.5 w-48 origin-top-right rounded-md bg-white py-2 shadow-lg ring-1 ring-gray-900/5 focus:outline-none">
+              <Menu.Items className="absolute right-0 z-10 mt-2.5 w-56 origin-top-right rounded-md bg-white py-2 shadow-lg ring-1 ring-gray-900/5 focus:outline-none">
                 <div className="px-3 py-2 border-b border-gray-100">
-                  <p className="text-sm font-medium text-gray-900">{user?.name || 'Super Admin'}</p>
-                  <p className="text-xs text-gray-500">{user?.email || 'admin@calltrackerprp.com'}</p>
+                  <p className="text-sm font-medium text-gray-900">{displayName}</p>
+                  <p className="text-xs text-gray-500">{user?.email || 'No email'}</p>
+                  <p className="text-xs text-blue-600 font-medium mt-1">{displayRole}</p>
                 </div>
                 
                 <Menu.Item>
