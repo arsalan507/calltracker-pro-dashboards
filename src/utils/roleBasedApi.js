@@ -298,7 +298,7 @@ export const getDashboardRoutes = (userRole) => {
   return routes[userRole] || ['overview'];
 };
 
-export default {
+const roleBasedApi = {
   getApiEndpoint,
   rolePermissions,
   hasPermission,
@@ -306,3 +306,5 @@ export default {
   createRoleBasedApiClient,
   getDashboardRoutes
 };
+
+export default roleBasedApi;

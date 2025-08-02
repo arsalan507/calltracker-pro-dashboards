@@ -15,7 +15,7 @@ import { Card, Button, Input, Modal } from '../../components/common';
 import RoleGuard, { ConditionalRender } from '../../components/common/RoleGuard';
 import { organizationService } from '../../services/organizationService';
 import { useAuth } from '../../contexts/AuthContext';
-import { createRoleBasedApiClient, hasPermission, getDashboardRoutes } from '../../utils/roleBasedApi';
+import { createRoleBasedApiClient, hasPermission } from '../../utils/roleBasedApi';
 import toast from 'react-hot-toast';
 
 const OrganizationsContent = () => {

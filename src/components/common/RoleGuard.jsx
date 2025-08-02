@@ -2,7 +2,7 @@ import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { hasPermission } from '../../utils/roleBasedApi';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
-import { Button } from './Button';
+import Button from './Button';
 import { useNavigate } from 'react-router-dom';
 
 /**
