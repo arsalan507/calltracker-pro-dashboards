@@ -693,6 +693,9 @@ const UserForm = ({ user, isEdit, onClose, onSuccess }) => {
     setLoading(true);
     
     try {
+      // Find the selected organization to get its name
+      const selectedOrg = organizations.find(org => (org.id || org._id) === formData.organizationId);
+      
       const userData = {
         fullName: formData.fullName || `${formData.firstName} ${formData.lastName}`.trim(),
         firstName: formData.firstName,
@@ -701,7 +704,8 @@ const UserForm = ({ user, isEdit, onClose, onSuccess }) => {
         phone: formData.phone,
         role: formData.role,
         isActive: formData.status === 'active',
-        organizationId: formData.role === 'super_admin' ? null : formData.organizationId
+        organizationId: formData.role === 'super_admin' ? null : formData.organizationId,
+        organizationName: formData.role === 'super_admin' ? null : selectedOrg?.name
       };
 
       if (!isEdit) {
