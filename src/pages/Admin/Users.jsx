@@ -87,18 +87,23 @@ const Users = () => {
           console.log('👤 User last login:', backendUser.lastLoginAt);
           console.log('👤 User created:', backendUser.createdAt);
           
-          // Handle organization name using the mapping
+          // Handle organization name using the mapping - with null safety
           let organizationName = 'No Organization';
+          let organizationInfo = null;
+          
           if (backendUser.organizationId) {
             if (typeof backendUser.organizationId === 'object' && backendUser.organizationId?.name) {
               organizationName = backendUser.organizationId.name;
+              organizationInfo = backendUser.organizationId;
             } else if (typeof backendUser.organizationId === 'string') {
               // Look up the organization name from our mapping
-              organizationName = orgMap[backendUser.organizationId] || `Org-${backendUser.organizationId.slice(-8)}`;
+              organizationInfo = orgMap[backendUser.organizationId];
+              organizationName = organizationInfo || `Org-${backendUser.organizationId.slice(-8)}`;
             }
           } else {
             // No organization (like super admin)
             organizationName = backendUser.role === 'super_admin' ? 'System Admin' : 'No Organization';
+            organizationInfo = null;
           }
           
           // Handle user name properly
@@ -136,7 +141,7 @@ const Users = () => {
             status: backendUser.isActive !== false ? 'active' : 'suspended',
             role: backendUser.role,
             organization: organizationName,
-            organizationId: typeof backendUser.organizationId === 'object' ? 
+            organizationId: backendUser.organizationId && typeof backendUser.organizationId === 'object' ? 
                           backendUser.organizationId._id : 
                           backendUser.organizationId,
             joinedAt: backendUser.createdAt ? 
@@ -212,9 +217,9 @@ const Users = () => {
   }, [fetchUsers]);
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.organization.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (user.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (user.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (user.organization || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
     const matchesOrg = organizationFilter === 'all' || user.organization === organizationFilter;
