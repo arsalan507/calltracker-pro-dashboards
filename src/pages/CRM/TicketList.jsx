@@ -4,7 +4,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, Button, Input, Modal } from '../../components/common';
 import { ticketService } from '../../services/ticketService';
-import { notificationService } from '../../services/notificationService';
+import { realTimeService } from '../../services/realTimeService';
+import EnhancedTicketForm from '../../components/tickets/EnhancedTicketForm';
+import PipelineKanban from '../../components/crm/PipelineKanban';
 import toast from 'react-hot-toast';
 import {
   TicketIcon,
@@ -42,16 +44,27 @@ const TicketList = () => {
   const [selectedTickets, setSelectedTickets] = useState([]);
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'kanban'
   
-  // Filters and search
+  // Filters and search - Enhanced with complete schema fields
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     status: '',
     priority: '',
     assignedTo: '',
-    customer: '',
+    assignedTeam: '',
+    category: '',
+    leadStatus: '',
+    stage: '',
+    slaStatus: '',
+    leadSource: '',
+    interestLevel: '',
     dateRange: '',
     tags: ''
   });
+
+  // Form states
+  const [showTicketForm, setShowTicketForm] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
   
   // Pagination
   const [pagination, setPagination] = useState({
@@ -113,22 +126,79 @@ const TicketList = () => {
   }, [fetchTickets]);
 
   useEffect(() => {
-    // Set up real-time updates
-    const handleTicketUpdate = (data) => {
-      if (data.type === 'ticket-created' || data.type === 'ticket-updated') {
-        fetchTickets();
-        toast.success(`Ticket ${data.type === 'ticket-created' ? 'created' : 'updated'}`);
-      }
-    };
-
-    notificationService.addEventListener('ticket-created', handleTicketUpdate);
-    notificationService.addEventListener('ticket-updated', handleTicketUpdate);
+    // Set up enhanced real-time updates
+    const currentOrg = JSON.parse(localStorage.getItem('currentOrganization') || '{}');
+    if (currentOrg._id) {
+      realTimeService.initializeSSE(currentOrg._id);
+      
+      // Listen for comprehensive real-time ticket updates
+      realTimeService.addEventListener('ticket-created', handleTicketCreated);
+      realTimeService.addEventListener('ticket-updated', handleTicketUpdated);
+      realTimeService.addEventListener('ticket-assigned', handleTicketAssigned);
+      realTimeService.addEventListener('ticket-escalated', handleTicketEscalated);
+      realTimeService.addEventListener('sla-breach-warning', handleSLAWarning);
+      realTimeService.addEventListener('pipeline-stage-changed', handlePipelineStageChanged);
+    }
 
     return () => {
-      notificationService.removeEventListener('ticket-created');
-      notificationService.removeEventListener('ticket-updated');
+      realTimeService.removeEventListener('ticket-created', handleTicketCreated);
+      realTimeService.removeEventListener('ticket-updated', handleTicketUpdated);
+      realTimeService.removeEventListener('ticket-assigned', handleTicketAssigned);
+      realTimeService.removeEventListener('ticket-escalated', handleTicketEscalated);
+      realTimeService.removeEventListener('sla-breach-warning', handleSLAWarning);
+      realTimeService.removeEventListener('pipeline-stage-changed', handlePipelineStageChanged);
     };
   }, [fetchTickets]);
+
+  const handleTicketCreated = useCallback((data) => {
+    const { ticket } = data;
+    setTickets(prevTickets => [ticket, ...prevTickets]);
+    toast.success(`New ticket created: ${ticket.contactName}`);
+  }, []);
+
+  const handleTicketUpdated = useCallback((data) => {
+    const { ticket } = data;
+    setTickets(prevTickets => 
+      prevTickets.map(existingTicket => 
+        existingTicket._id === ticket._id ? ticket : existingTicket
+      )
+    );
+  }, []);
+
+  const handleTicketAssigned = useCallback((data) => {
+    const { ticket, assignedToName } = data;
+    setTickets(prevTickets => 
+      prevTickets.map(existingTicket => 
+        existingTicket._id === ticket._id ? ticket : existingTicket
+      )
+    );
+    toast.success(`Ticket assigned to ${assignedToName}`);
+  }, []);
+
+  const handleTicketEscalated = useCallback((data) => {
+    const { ticket } = data;
+    setTickets(prevTickets => 
+      prevTickets.map(existingTicket => 
+        existingTicket._id === ticket._id ? ticket : existingTicket
+      )
+    );
+    toast.error(`Ticket escalated: ${ticket.contactName}`);
+  }, []);
+
+  const handleSLAWarning = useCallback((data) => {
+    const { ticket, timeRemaining } = data;
+    toast.error(`SLA Warning: ${ticket.contactName} - ${timeRemaining} remaining`);
+  }, []);
+
+  const handlePipelineStageChanged = useCallback((data) => {
+    const { ticket, newStage } = data;
+    setTickets(prevTickets => 
+      prevTickets.map(existingTicket => 
+        existingTicket._id === ticket._id ? ticket : existingTicket
+      )
+    );
+    toast.success(`Ticket moved to ${newStage.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}`);
+  }, []);
 
   const handleTicketSelect = (ticketId, isSelected) => {
     if (isSelected) {
@@ -136,6 +206,24 @@ const TicketList = () => {
     } else {
       setSelectedTickets(prev => prev.filter(id => id !== ticketId));
     }
+  };
+
+  const handleCreateTicket = () => {
+    setSelectedTicket(null);
+    setIsEditMode(false);
+    setShowTicketForm(true);
+  };
+
+  const handleEditTicket = (ticket) => {
+    setSelectedTicket(ticket);
+    setIsEditMode(true);
+    setShowTicketForm(true);
+  };
+
+  const handleTicketFormSuccess = () => {
+    setShowTicketForm(false);
+    setSelectedTicket(null);
+    fetchTickets();
   };
 
   // const handleSelectAll = (isSelected) => {
@@ -256,12 +344,13 @@ const TicketList = () => {
             </Button>
           )}
           {canCreateTickets() && (
-            <Link to="/dashboard/crm/tickets/new">
-              <Button className="flex items-center space-x-2 w-full sm:w-auto">
-                <PlusIcon className="w-5 h-5" />
-                <span>New Ticket</span>
-              </Button>
-            </Link>
+            <Button 
+              onClick={handleCreateTicket}
+              className="flex items-center space-x-2 w-full sm:w-auto"
+            >
+              <PlusIcon className="w-5 h-5" />
+              <span>New Ticket</span>
+            </Button>
           )}
         </div>
       </motion.div>
@@ -302,7 +391,7 @@ const TicketList = () => {
               </Button>
               <Button
                 variant={viewMode === 'kanban' ? 'primary' : 'ghost'}
-                onClick={() => navigate('/dashboard/crm/kanban')}
+                onClick={() => setViewMode('kanban')}
                 className="rounded-l-none"
               >
                 <Squares2X2Icon className="w-5 h-5" />
@@ -311,48 +400,142 @@ const TicketList = () => {
           </div>
         </div>
 
-        {/* Expanded Filters */}
+        {/* Enhanced Filters with Complete Schema */}
         {showFilters && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="mt-4 pt-4 border-t grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4"
+            className="mt-4 pt-4 border-t space-y-4"
           >
-            <select
-              value={filters.status}
-              onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-              className="input-field"
-            >
-              <option value="">All Status</option>
-              <option value="open">Open</option>
-              <option value="in-progress">In Progress</option>
-              <option value="resolved">Resolved</option>
-              <option value="closed">Closed</option>
-            </select>
-            
-            <select
-              value={filters.priority}
-              onChange={(e) => setFilters(prev => ({ ...prev, priority: e.target.value }))}
-              className="input-field"
-            >
-              <option value="">All Priority</option>
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="urgent">Urgent</option>
-            </select>
+            {/* Row 1: Basic Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <select
+                value={filters.status}
+                onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                className="input-field"
+              >
+                <option value="">All Status</option>
+                <option value="open">Open</option>
+                <option value="in_progress">In Progress</option>
+                <option value="resolved">Resolved</option>
+                <option value="closed">Closed</option>
+              </select>
+              
+              <select
+                value={filters.priority}
+                onChange={(e) => setFilters(prev => ({ ...prev, priority: e.target.value }))}
+                className="input-field"
+              >
+                <option value="">All Priority</option>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
 
-            <Input
-              placeholder="Customer name"
-              value={filters.customer}
-              onChange={(e) => setFilters(prev => ({ ...prev, customer: e.target.value }))}
-            />
+              <select
+                value={filters.category}
+                onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
+                className="input-field"
+              >
+                <option value="">All Categories</option>
+                <option value="sales">Sales</option>
+                <option value="support">Support</option>
+                <option value="billing">Billing</option>
+                <option value="technical">Technical</option>
+              </select>
 
-            <div className="flex gap-2">
-              <Button variant="ghost" size="sm" onClick={clearFilters}>
-                Clear
-              </Button>
+              <select
+                value={filters.slaStatus}
+                onChange={(e) => setFilters(prev => ({ ...prev, slaStatus: e.target.value }))}
+                className="input-field"
+              >
+                <option value="">All SLA Status</option>
+                <option value="on_track">On Track</option>
+                <option value="at_risk">At Risk</option>
+                <option value="breached">Breached</option>
+              </select>
+            </div>
+
+            {/* Row 2: CRM & Lead Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <select
+                value={filters.leadStatus}
+                onChange={(e) => setFilters(prev => ({ ...prev, leadStatus: e.target.value }))}
+                className="input-field"
+              >
+                <option value="">All Lead Status</option>
+                <option value="new">New</option>
+                <option value="contacted">Contacted</option>
+                <option value="qualified">Qualified</option>
+                <option value="converted">Converted</option>
+                <option value="closed">Closed</option>
+              </select>
+
+              <select
+                value={filters.stage}
+                onChange={(e) => setFilters(prev => ({ ...prev, stage: e.target.value }))}
+                className="input-field"
+              >
+                <option value="">All Pipeline Stages</option>
+                <option value="prospect">Prospect</option>
+                <option value="qualified">Qualified</option>
+                <option value="proposal">Proposal</option>
+                <option value="negotiation">Negotiation</option>
+                <option value="closed-won">Closed Won</option>
+                <option value="closed-lost">Closed Lost</option>
+              </select>
+
+              <select
+                value={filters.leadSource}
+                onChange={(e) => setFilters(prev => ({ ...prev, leadSource: e.target.value }))}
+                className="input-field"
+              >
+                <option value="">All Lead Sources</option>
+                <option value="cold_call">Cold Call</option>
+                <option value="referral">Referral</option>
+                <option value="website">Website</option>
+                <option value="marketing">Marketing</option>
+              </select>
+
+              <select
+                value={filters.interestLevel}
+                onChange={(e) => setFilters(prev => ({ ...prev, interestLevel: e.target.value }))}
+                className="input-field"
+              >
+                <option value="">All Interest Levels</option>
+                <option value="hot">Hot</option>
+                <option value="warm">Warm</option>
+                <option value="cold">Cold</option>
+              </select>
+            </div>
+
+            {/* Row 3: Assignment & Search */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Input
+                placeholder="Assigned to user..."
+                value={filters.assignedTo}
+                onChange={(e) => setFilters(prev => ({ ...prev, assignedTo: e.target.value }))}
+              />
+
+              <Input
+                placeholder="Team name..."
+                value={filters.assignedTeam}
+                onChange={(e) => setFilters(prev => ({ ...prev, assignedTeam: e.target.value }))}
+              />
+
+              <Input
+                placeholder="Tags (comma separated)"
+                value={filters.tags}
+                onChange={(e) => setFilters(prev => ({ ...prev, tags: e.target.value }))}
+              />
+
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={clearFilters}>
+                  Clear All
+                </Button>
+              </div>
             </div>
           </motion.div>
         )}
@@ -390,42 +573,50 @@ const TicketList = () => {
         </motion.div>
       )}
 
-      {/* Tickets List */}
-      {tickets.length > 0 ? (
-        <div className="space-y-4">
-          {tickets.map((ticket, index) => (
-            <motion.div
-              key={ticket.id || ticket._id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
-            >
-              <TicketCard
-                ticket={ticket}
-                isSelected={selectedTickets.includes(ticket.id || ticket._id)}
-                onSelect={handleTicketSelect}
-                canEdit={canEditTickets()}
-                canDelete={canDeleteTickets()}
-                onRefresh={fetchTickets}
-              />
-            </motion.div>
-          ))}
-        </div>
+      {/* Main Content - List or Kanban View */}
+      {viewMode === 'kanban' ? (
+        <PipelineKanban />
       ) : (
-        <Card className="p-12 text-center">
-          <TicketIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No tickets found</h3>
-          <p className="text-gray-600 mb-6">
-            {searchTerm || Object.values(filters).some(Boolean)
-              ? 'Try adjusting your search terms or filters.'
-              : 'Get started by creating your first ticket.'}
-          </p>
-          {canCreateTickets() && (
-            <Link to="/dashboard/crm/tickets/new">
-              <Button>Create First Ticket</Button>
-            </Link>
+        <>
+          {/* Tickets List */}
+          {tickets.length > 0 ? (
+            <div className="space-y-4">
+              {tickets.map((ticket, index) => (
+                <motion.div
+                  key={ticket.id || ticket._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                >
+                  <TicketCard
+                    ticket={ticket}
+                    isSelected={selectedTickets.includes(ticket.id || ticket._id)}
+                    onSelect={handleTicketSelect}
+                    canEdit={canEditTickets()}
+                    canDelete={canDeleteTickets()}
+                    onRefresh={fetchTickets}
+                    onEdit={handleEditTicket}
+                  />
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <Card className="p-12 text-center">
+              <TicketIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No tickets found</h3>
+              <p className="text-gray-600 mb-6">
+                {searchTerm || Object.values(filters).some(Boolean)
+                  ? 'Try adjusting your search terms or filters.'
+                  : 'Get started by creating your first ticket.'}
+              </p>
+              {canCreateTickets() && (
+                <Button onClick={handleCreateTicket}>
+                  Create First Ticket
+                </Button>
+              )}
+            </Card>
           )}
-        </Card>
+        </>
       )}
 
       {/* Pagination */}
@@ -492,12 +683,22 @@ const TicketList = () => {
           onClose={() => setBulkActionModal(null)}
         />
       )}
+
+      {/* Enhanced Ticket Form Modal */}
+      {showTicketForm && (
+        <EnhancedTicketForm
+          ticket={selectedTicket}
+          isEdit={isEditMode}
+          onClose={() => setShowTicketForm(false)}
+          onSuccess={handleTicketFormSuccess}
+        />
+      )}
     </div>
   );
 };
 
 // Ticket Card Component
-const TicketCard = ({ ticket, isSelected, onSelect, canEdit, canDelete, onRefresh }) => {
+const TicketCard = ({ ticket, isSelected, onSelect, canEdit, canDelete, onRefresh, onEdit }) => {
   const navigate = useNavigate();
   const ticketId = ticket.id || ticket._id;
 
@@ -582,7 +783,7 @@ const TicketCard = ({ ticket, isSelected, onSelect, canEdit, canDelete, onRefres
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => navigate(`/dashboard/crm/tickets/${ticketId}?mode=edit`)}
+                    onClick={() => onEdit ? onEdit(ticket) : navigate(`/dashboard/crm/tickets/${ticketId}?mode=edit`)}
                   >
                     <PencilIcon className="w-4 h-4" />
                   </Button>
