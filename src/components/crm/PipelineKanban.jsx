@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import {
   DndContext,
   closestCenter,
@@ -23,8 +23,6 @@ import {
   PhoneIcon,
   CurrencyDollarIcon,
   CalendarIcon,
-  ClockIcon,
-  ExclamationTriangleIcon,
   StarIcon,
   PlusIcon,
   EyeIcon,
@@ -48,12 +46,6 @@ const PipelineKanban = () => {
   const [showTicketForm, setShowTicketForm] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [activeId, setActiveId] = useState(null);
-  const [filters, setFilters] = useState({
-    assignedTo: '',
-    priority: '',
-    leadSource: '',
-    dateRange: ''
-  });
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -63,7 +55,7 @@ const PipelineKanban = () => {
   );
 
   // Pipeline stages configuration matching your schema
-  const pipelineStages = [
+  const pipelineStages = useMemo(() => [
     {
       id: 'prospect',
       title: 'Prospect',
@@ -106,61 +98,7 @@ const PipelineKanban = () => {
       headerColor: 'bg-red-500',
       description: 'Lost opportunities'
     }
-  ];
-
-  useEffect(() => {
-    fetchPipelineData();
-    setupRealTimeUpdates();
-    
-    return () => {
-      cleanupRealTimeUpdates();
-    };
-  }, []);
-
-  const fetchPipelineData = async () => {
-    try {
-      setLoading(true);
-      const response = await ticketService.getTicketsByStage();
-      
-      // Organize tickets by pipeline stage
-      const organizedTickets = {};
-      pipelineStages.forEach(stage => {
-        organizedTickets[stage.id] = response.data?.[stage.id] || [];
-      });
-      
-      setTickets(organizedTickets);
-    } catch (error) {
-      console.error('Error fetching pipeline data:', error);
-      toast.error('Failed to load pipeline data');
-      
-      // Initialize empty pipeline if fetch fails
-      const emptyPipeline = {};
-      pipelineStages.forEach(stage => {
-        emptyPipeline[stage.id] = [];
-      });
-      setTickets(emptyPipeline);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const setupRealTimeUpdates = () => {
-    const currentOrg = JSON.parse(localStorage.getItem('currentOrganization') || '{}');
-    if (currentOrg._id) {
-      realTimeService.initializeSSE(currentOrg._id);
-      
-      // Listen for pipeline stage changes
-      realTimeService.addEventListener('pipeline-stage-changed', handlePipelineStageChange);
-      realTimeService.addEventListener('ticket-created', handleTicketCreated);
-      realTimeService.addEventListener('ticket-updated', handleTicketUpdated);
-    }
-  };
-
-  const cleanupRealTimeUpdates = () => {
-    realTimeService.removeEventListener('pipeline-stage-changed', handlePipelineStageChange);
-    realTimeService.removeEventListener('ticket-created', handleTicketCreated);
-    realTimeService.removeEventListener('ticket-updated', handleTicketUpdated);
-  };
+  ], []);
 
   const handlePipelineStageChange = useCallback((data) => {
     const { ticketId, oldStage, newStage, ticket } = data;
@@ -217,6 +155,60 @@ const PipelineKanban = () => {
       return newTickets;
     });
   }, []);
+
+  const setupRealTimeUpdates = useCallback(() => {
+    const currentOrg = JSON.parse(localStorage.getItem('currentOrganization') || '{}');
+    if (currentOrg._id) {
+      realTimeService.initializeSSE(currentOrg._id);
+      
+      // Listen for pipeline stage changes
+      realTimeService.addEventListener('pipeline-stage-changed', handlePipelineStageChange);
+      realTimeService.addEventListener('ticket-created', handleTicketCreated);
+      realTimeService.addEventListener('ticket-updated', handleTicketUpdated);
+    }
+  }, [handlePipelineStageChange, handleTicketCreated, handleTicketUpdated]);
+
+  const cleanupRealTimeUpdates = useCallback(() => {
+    realTimeService.removeEventListener('pipeline-stage-changed', handlePipelineStageChange);
+    realTimeService.removeEventListener('ticket-created', handleTicketCreated);
+    realTimeService.removeEventListener('ticket-updated', handleTicketUpdated);
+  }, [handlePipelineStageChange, handleTicketCreated, handleTicketUpdated]);
+
+  const fetchPipelineData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await ticketService.getTicketsByStage();
+      
+      // Organize tickets by pipeline stage
+      const organizedTickets = {};
+      pipelineStages.forEach(stage => {
+        organizedTickets[stage.id] = response.data?.[stage.id] || [];
+      });
+      
+      setTickets(organizedTickets);
+    } catch (error) {
+      console.error('Error fetching pipeline data:', error);
+      toast.error('Failed to load pipeline data');
+      
+      // Initialize empty pipeline if fetch fails
+      const emptyPipeline = {};
+      pipelineStages.forEach(stage => {
+        emptyPipeline[stage.id] = [];
+      });
+      setTickets(emptyPipeline);
+    } finally {
+      setLoading(false);
+    }
+  }, [pipelineStages]);
+
+  useEffect(() => {
+    fetchPipelineData();
+    setupRealTimeUpdates();
+    
+    return () => {
+      cleanupRealTimeUpdates();
+    };
+  }, [fetchPipelineData, setupRealTimeUpdates, cleanupRealTimeUpdates]);
 
   const handleDragStart = (event) => {
     setActiveId(event.active.id);
@@ -300,11 +292,11 @@ const PipelineKanban = () => {
     setShowTicketForm(true);
   };
 
-  const handleTicketFormSuccess = () => {
+  const handleTicketFormSuccess = useCallback(() => {
     setShowTicketForm(false);
     setSelectedTicket(null);
     fetchPipelineData();
-  };
+  }, [fetchPipelineData]);
 
   const getPriorityColor = (priority) => {
     const colors = {

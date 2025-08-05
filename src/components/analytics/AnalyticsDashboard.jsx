@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   ChartBarIcon,
@@ -31,11 +31,7 @@ const AnalyticsDashboard = () => {
     performance: {}
   });
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, [timeRange]);
-
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -65,7 +61,12 @@ const AnalyticsDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [timeRange, user?.role]);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
+
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
@@ -349,8 +350,6 @@ const AnalyticsDashboard = () => {
 
 // Metric Card Component
 const MetricCard = ({ title, value, change, icon: Icon, color }) => {
-  const TrendIcon = getTrendIcon(change);
-  const trendColor = getTrendColor(change);
 
   return (
     <motion.div
@@ -364,13 +363,17 @@ const MetricCard = ({ title, value, change, icon: Icon, color }) => {
             <p className="text-sm font-medium text-gray-600">{title}</p>
             <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
             
-            {change !== undefined && (
-              <div className={`flex items-center mt-2 text-sm ${trendColor}`}>
-                <TrendIcon className="w-4 h-4 mr-1" />
-                <span>{Math.abs(change)}%</span>
-                <span className="text-gray-500 ml-1">vs last period</span>
-              </div>
-            )}
+            {change !== undefined && (() => {
+              const TrendIcon = getTrendIcon(change);
+              const trendColor = getTrendColor(change);
+              return (
+                <div className={`flex items-center mt-2 text-sm ${trendColor}`}>
+                  <TrendIcon className="w-4 h-4 mr-1" />
+                  <span>{Math.abs(change)}%</span>
+                  <span className="text-gray-500 ml-1">vs last period</span>
+                </div>
+              );
+            })()}
           </div>
           
           <div className={`w-12 h-12 ${color} rounded-lg flex items-center justify-center`}>

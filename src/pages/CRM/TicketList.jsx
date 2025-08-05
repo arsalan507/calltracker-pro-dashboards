@@ -38,7 +38,6 @@ const TicketList = () => {
     canExportData
   } = useAuth();
   
-  const navigate = useNavigate();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTickets, setSelectedTickets] = useState([]);
@@ -125,31 +124,6 @@ const TicketList = () => {
     fetchTickets();
   }, [fetchTickets]);
 
-  useEffect(() => {
-    // Set up enhanced real-time updates
-    const currentOrg = JSON.parse(localStorage.getItem('currentOrganization') || '{}');
-    if (currentOrg._id) {
-      realTimeService.initializeSSE(currentOrg._id);
-      
-      // Listen for comprehensive real-time ticket updates
-      realTimeService.addEventListener('ticket-created', handleTicketCreated);
-      realTimeService.addEventListener('ticket-updated', handleTicketUpdated);
-      realTimeService.addEventListener('ticket-assigned', handleTicketAssigned);
-      realTimeService.addEventListener('ticket-escalated', handleTicketEscalated);
-      realTimeService.addEventListener('sla-breach-warning', handleSLAWarning);
-      realTimeService.addEventListener('pipeline-stage-changed', handlePipelineStageChanged);
-    }
-
-    return () => {
-      realTimeService.removeEventListener('ticket-created', handleTicketCreated);
-      realTimeService.removeEventListener('ticket-updated', handleTicketUpdated);
-      realTimeService.removeEventListener('ticket-assigned', handleTicketAssigned);
-      realTimeService.removeEventListener('ticket-escalated', handleTicketEscalated);
-      realTimeService.removeEventListener('sla-breach-warning', handleSLAWarning);
-      realTimeService.removeEventListener('pipeline-stage-changed', handlePipelineStageChanged);
-    };
-  }, [fetchTickets]);
-
   const handleTicketCreated = useCallback((data) => {
     const { ticket } = data;
     setTickets(prevTickets => [ticket, ...prevTickets]);
@@ -199,6 +173,31 @@ const TicketList = () => {
     );
     toast.success(`Ticket moved to ${newStage.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}`);
   }, []);
+
+  useEffect(() => {
+    // Set up enhanced real-time updates
+    const currentOrg = JSON.parse(localStorage.getItem('currentOrganization') || '{}');
+    if (currentOrg._id) {
+      realTimeService.initializeSSE(currentOrg._id);
+      
+      // Listen for comprehensive real-time ticket updates
+      realTimeService.addEventListener('ticket-created', handleTicketCreated);
+      realTimeService.addEventListener('ticket-updated', handleTicketUpdated);
+      realTimeService.addEventListener('ticket-assigned', handleTicketAssigned);
+      realTimeService.addEventListener('ticket-escalated', handleTicketEscalated);
+      realTimeService.addEventListener('sla-breach-warning', handleSLAWarning);
+      realTimeService.addEventListener('pipeline-stage-changed', handlePipelineStageChanged);
+    }
+
+    return () => {
+      realTimeService.removeEventListener('ticket-created', handleTicketCreated);
+      realTimeService.removeEventListener('ticket-updated', handleTicketUpdated);
+      realTimeService.removeEventListener('ticket-assigned', handleTicketAssigned);
+      realTimeService.removeEventListener('ticket-escalated', handleTicketEscalated);
+      realTimeService.removeEventListener('sla-breach-warning', handleSLAWarning);
+      realTimeService.removeEventListener('pipeline-stage-changed', handlePipelineStageChanged);
+    };
+  }, [handleTicketCreated, handleTicketUpdated, handleTicketAssigned, handleTicketEscalated, handleSLAWarning, handlePipelineStageChanged]);
 
   const handleTicketSelect = (ticketId, isSelected) => {
     if (isSelected) {

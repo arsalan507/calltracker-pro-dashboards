@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronDownIcon,
   CheckIcon,
   BuildingOfficeIcon,
   PlusIcon,
-  UserGroupIcon,
-  ArrowRightOnRectangleIcon
+  UserGroupIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
 import { organizationService } from '../../services/organizationService';
@@ -21,22 +20,7 @@ const OrganizationSwitcher = ({ className = '' }) => {
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef(null);
 
-  useEffect(() => {
-    fetchUserOrganizations();
-    loadCurrentOrganization();
-    
-    // Close dropdown when clicking outside
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const fetchUserOrganizations = async () => {
+  const fetchUserOrganizations = useCallback(async () => {
     try {
       // For super admin, fetch all organizations
       if (user?.role === 'super_admin') {
@@ -51,9 +35,9 @@ const OrganizationSwitcher = ({ className = '' }) => {
       console.error('Error fetching organizations:', error);
       toast.error('Failed to load organizations');
     }
-  };
+  }, [user?.role, user?.organizations]);
 
-  const loadCurrentOrganization = () => {
+  const loadCurrentOrganization = useCallback(() => {
     const saved = localStorage.getItem('currentOrganization');
     if (saved) {
       try {
@@ -72,7 +56,22 @@ const OrganizationSwitcher = ({ className = '' }) => {
       setCurrentOrganization(primaryOrg);
       localStorage.setItem('currentOrganization', JSON.stringify(primaryOrg));
     }
-  };
+  }, [user?.organizationId, user?.organizationName]);
+
+  useEffect(() => {
+    fetchUserOrganizations();
+    loadCurrentOrganization();
+    
+    // Close dropdown when clicking outside
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [user, fetchUserOrganizations, loadCurrentOrganization]);
 
   const handleOrganizationSwitch = async (organization) => {
     if (currentOrganization?._id === organization._id) {

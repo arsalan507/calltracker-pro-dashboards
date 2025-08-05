@@ -15,7 +15,7 @@ import {
   ExclamationTriangleIcon,
   CheckCircleIcon
 } from '@heroicons/react/24/outline';
-import { Card, Button, Input, Modal } from '../common';
+import { Button, Input, Modal } from '../common';
 import { ticketService } from '../../services/ticketService';
 import { userService } from '../../services/userService';
 import { organizationService } from '../../services/organizationService';
