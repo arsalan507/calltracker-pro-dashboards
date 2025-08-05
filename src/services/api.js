@@ -1,22 +1,42 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+// Primary API endpoint with fallbacks as per your specs
+const PRIMARY_API_URL = 'https://calltrackerpro-backend.vercel.app/api';
+const FALLBACK_URLS = [
+  'https://76.76.21.21/api',
+  'https://64.29.17.131/api'
+];
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || PRIMARY_API_URL;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 15000, // Increased timeout for real-time features
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Request interceptor to add auth token
+// Store current API URL for fallback mechanism
+let currentApiUrl = API_BASE_URL;
+let fallbackIndex = 0;
+
+// Request interceptor to add auth token and organization context
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('authToken');
+    const currentOrganization = localStorage.getItem('currentOrganization');
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Add organization context for multi-tenant data isolation
+    if (currentOrganization) {
+      const orgData = JSON.parse(currentOrganization);
+      config.headers['X-Organization-ID'] = orgData._id || orgData.id;
+    }
+    
     return config;
   },
   (error) => {
@@ -24,24 +44,44 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor for error handling
+// Response interceptor for error handling with fallback support
 api.interceptors.response.use(
   (response) => {
+    // Reset fallback index on successful response
+    fallbackIndex = 0;
     return response.data;
   },
-  (error) => {
+  async (error) => {
     console.error('🚨 API Error Details:', {
       message: error.message,
       response: error.response,
       request: error.request,
       status: error.response?.status,
       data: error.response?.data,
-      code: error.code
+      code: error.code,
+      currentUrl: currentApiUrl
     });
+
+    // Handle network errors with fallback mechanism
+    if (error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK' || !error.response) {
+      if (fallbackIndex < FALLBACK_URLS.length) {
+        const fallbackUrl = FALLBACK_URLS[fallbackIndex];
+        console.log(`🔄 Trying fallback API: ${fallbackUrl}`);
+        
+        // Update API base URL
+        api.defaults.baseURL = fallbackUrl;
+        currentApiUrl = fallbackUrl;
+        fallbackIndex++;
+        
+        // Retry the original request
+        return api.request(error.config);
+      }
+    }
 
     if (error.response?.status === 401) {
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
+      localStorage.removeItem('currentOrganization');
       window.location.href = '/admin/login';
     }
 
@@ -52,7 +92,7 @@ api.interceptors.response.use(
     } else if (error.request) {
       // Request was made but no response received (network error, CORS, etc.)
       return Promise.reject({ 
-        message: 'Network error: Unable to reach server. Please check if the backend is running and CORS is configured.',
+        message: 'Network error: Unable to reach server. All fallback URLs have been tried.',
         type: 'network_error',
         originalError: error.message
       });
@@ -65,5 +105,13 @@ api.interceptors.response.use(
     }
   }
 );
+
+// Utility functions for API management
+export const getCurrentApiUrl = () => currentApiUrl;
+export const resetApiUrl = () => {
+  api.defaults.baseURL = API_BASE_URL;
+  currentApiUrl = API_BASE_URL;
+  fallbackIndex = 0;
+};
 
 export default api;

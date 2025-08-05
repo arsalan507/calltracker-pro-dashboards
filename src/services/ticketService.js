@@ -1,13 +1,20 @@
 import api from './api';
 
 class TicketService {
-  // Get all tickets with filtering and pagination
+  // Get all tickets with advanced filtering and pagination per your schema
   async getTickets(filters = {}) {
     const params = new URLSearchParams();
     
-    // Add filters to query params
+    // Add all possible filters from your comprehensive schema
+    const allowedFilters = [
+      'organizationId', 'teamId', 'assignedTo', 'status', 'category', 'priority',
+      'slaStatus', 'leadStatus', 'stage', 'callType', 'leadSource', 'interestLevel',
+      'page', 'limit', 'sortBy', 'sortOrder', 'search', 'dateFrom', 'dateTo'
+    ];
+    
     Object.keys(filters).forEach(key => {
-      if (filters[key] !== undefined && filters[key] !== null && filters[key] !== '') {
+      if (allowedFilters.includes(key) && filters[key] !== undefined && 
+          filters[key] !== null && filters[key] !== '') {
         params.append(key, filters[key]);
       }
     });
@@ -264,6 +271,153 @@ class TicketService {
     } catch (error) {
       console.error('Error fetching call ticket stats:', error);
       throw new Error(error.message || 'Failed to fetch call ticket statistics');
+    }
+  }
+
+  // ========= ENHANCED CRM & PIPELINE FEATURES =========
+  
+  // Assign ticket to user/team
+  async assignTicket(ticketId, assignmentData) {
+    try {
+      const response = await api.post(`/tickets/${ticketId}/assign`, assignmentData);
+      return response;
+    } catch (error) {
+      console.error('Error assigning ticket:', error);
+      throw new Error(error.message || 'Failed to assign ticket');
+    }
+  }
+
+  // Escalate ticket
+  async escalateTicket(ticketId, escalationData) {
+    try {
+      const response = await api.post(`/tickets/${ticketId}/escalate`, escalationData);
+      return response;
+    } catch (error) {
+      console.error('Error escalating ticket:', error);
+      throw new Error(error.message || 'Failed to escalate ticket');
+    }
+  }
+
+  // Update ticket status
+  async updateTicketStatus(ticketId, status, reason = '') {
+    try {
+      const response = await api.put(`/tickets/${ticketId}/status`, { status, reason });
+      return response;
+    } catch (error) {
+      console.error('Error updating ticket status:', error);
+      throw new Error(error.message || 'Failed to update ticket status');
+    }
+  }
+
+  // Update CRM pipeline stage
+  async updatePipelineStage(ticketId, stage, stageData = {}) {
+    try {
+      const response = await api.put(`/tickets/${ticketId}/stage`, { stage, ...stageData });
+      return response;
+    } catch (error) {
+      console.error('Error updating pipeline stage:', error);
+      throw new Error(error.message || 'Failed to update pipeline stage');
+    }
+  }
+
+  // Submit customer satisfaction rating
+  async submitSatisfactionRating(ticketId, ratingData) {
+    try {
+      const response = await api.post(`/tickets/${ticketId}/satisfaction`, ratingData);
+      return response;
+    } catch (error) {
+      console.error('Error submitting satisfaction rating:', error);
+      throw new Error(error.message || 'Failed to submit satisfaction rating');
+    }
+  }
+
+  // Schedule follow-up
+  async scheduleFollowUp(ticketId, followUpData) {
+    try {
+      const response = await api.post(`/tickets/${ticketId}/follow-up`, followUpData);
+      return response;
+    } catch (error) {
+      console.error('Error scheduling follow-up:', error);
+      throw new Error(error.message || 'Failed to schedule follow-up');
+    }
+  }
+
+  // Get pipeline analytics
+  async getPipelineAnalytics(filters = {}) {
+    const params = new URLSearchParams();
+    
+    Object.keys(filters).forEach(key => {
+      if (filters[key] !== undefined && filters[key] !== null && filters[key] !== '') {
+        params.append(key, filters[key]);
+      }
+    });
+
+    try {
+      const response = await api.get(`/tickets/analytics/pipeline?${params.toString()}`);
+      return response;
+    } catch (error) {
+      console.error('Error fetching pipeline analytics:', error);
+      throw new Error(error.message || 'Failed to fetch pipeline analytics');
+    }
+  }
+
+  // Get conversion analytics
+  async getConversionAnalytics(filters = {}) {
+    const params = new URLSearchParams();
+    
+    Object.keys(filters).forEach(key => {
+      if (filters[key] !== undefined && filters[key] !== null && filters[key] !== '') {
+        params.append(key, filters[key]);
+      }
+    });
+
+    try {
+      const response = await api.get(`/tickets/analytics/conversion?${params.toString()}`);
+      return response;
+    } catch (error) {
+      console.error('Error fetching conversion analytics:', error);
+      throw new Error(error.message || 'Failed to fetch conversion analytics');
+    }
+  }
+
+  // Get SLA analytics
+  async getSLAAnalytics(filters = {}) {
+    const params = new URLSearchParams();
+    
+    Object.keys(filters).forEach(key => {
+      if (filters[key] !== undefined && filters[key] !== null && filters[key] !== '') {
+        params.append(key, filters[key]);
+      }
+    });
+
+    try {
+      const response = await api.get(`/tickets/analytics/sla?${params.toString()}`);
+      return response;
+    } catch (error) {
+      console.error('Error fetching SLA analytics:', error);
+      throw new Error(error.message || 'Failed to fetch SLA analytics');
+    }
+  }
+
+  // Get tickets by lead status for CRM pipeline
+  async getTicketsByLeadStatus() {
+    try {
+      const response = await api.get('/tickets/by-lead-status');
+      return response;
+    } catch (error) {
+      console.error('Error fetching tickets by lead status:', error);
+      throw new Error(error.message || 'Failed to fetch tickets by lead status');
+    }
+  }
+
+  // Get tickets by pipeline stage
+  async getTicketsByStage() {
+    try {
+      const response = await api.get('/tickets/by-stage');
+      return response;
+    } catch (error) {
+      console.error('Error fetching tickets by stage:', error);
+      throw new Error(error.message || 'Failed to fetch tickets by stage');
     }
   }
 }
