@@ -4,3 +4,4 @@ export { default as Card } from './Card';
 export { default as Modal } from './Modal';
 export { default as LoadingSpinner } from './LoadingSpinner';
 export { default as ProtectedRoute } from './ProtectedRoute';
+export { default as OrganizationSwitcher } from './OrganizationSwitcher';

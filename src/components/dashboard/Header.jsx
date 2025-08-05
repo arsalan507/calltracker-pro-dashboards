@@ -10,6 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../common';
+import OrganizationSwitcher from '../common/OrganizationSwitcher';
 
 const Header = ({ onMenuClick }) => {
   const { user, logout } = useAuth();
@@ -77,6 +78,11 @@ const Header = ({ onMenuClick }) => {
         </form>
         
         <div className="flex items-center gap-x-4 lg:gap-x-6">
+          {/* Organization Switcher */}
+          <div className="hidden sm:block">
+            <OrganizationSwitcher className="w-64" />
+          </div>
+
           {/* Notifications */}
           <Menu as="div" className="relative">
             <Menu.Button className="relative p-2 text-gray-400 hover:text-gray-500">
