@@ -61,7 +61,9 @@ const OrganizationSwitcher = ({ className = '' }) => {
   useEffect(() => {
     fetchUserOrganizations();
     loadCurrentOrganization();
-    
+  }, [fetchUserOrganizations, loadCurrentOrganization]);
+
+  useEffect(() => {
     // Close dropdown when clicking outside
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -71,7 +73,7 @@ const OrganizationSwitcher = ({ className = '' }) => {
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [user, fetchUserOrganizations, loadCurrentOrganization]);
+  }, []);
 
   const handleOrganizationSwitch = async (organization) => {
     if (currentOrganization?._id === organization._id) {
