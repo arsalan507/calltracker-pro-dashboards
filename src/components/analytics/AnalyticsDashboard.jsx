@@ -18,6 +18,7 @@ import { Card, Button } from '../common';
 import { ticketService } from '../../services/ticketService';
 import { organizationService } from '../../services/organizationService';
 import { useAuth } from '../../contexts/AuthContext';
+import { ScheduleDemoButton } from '../demo';
 
 const AnalyticsDashboard = () => {
   const { user } = useAuth();
@@ -108,6 +109,13 @@ const AnalyticsDashboard = () => {
         </div>
         
         <div className="flex items-center space-x-3">
+          <ScheduleDemoButton 
+            variant="outline"
+            size="sm"
+            text="Need Help?"
+            className="border-primary-300 text-primary-600 hover:bg-primary-50"
+          />
+          
           <select
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value)}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import { FloatingDemoButton } from '../demo';
 
 const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -23,6 +24,9 @@ const DashboardLayout = () => {
           </div>
         </main>
       </div>
+      
+      {/* Floating Demo Button */}
+      <FloatingDemoButton position="bottom-right" />
     </div>
   );
 };

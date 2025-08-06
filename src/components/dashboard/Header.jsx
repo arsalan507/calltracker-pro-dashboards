@@ -11,6 +11,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../common';
 import OrganizationSwitcher from '../common/OrganizationSwitcher';
+import { ScheduleDemoButton, QuickSupportButton } from '../demo';
 
 const Header = ({ onMenuClick }) => {
   const { user, logout } = useAuth();
@@ -78,6 +79,20 @@ const Header = ({ onMenuClick }) => {
         </form>
         
         <div className="flex items-center gap-x-4 lg:gap-x-6">
+          {/* Schedule Demo Button */}
+          <div className="hidden md:block">
+            <ScheduleDemoButton 
+              size="sm" 
+              text="Schedule Demo"
+              className="bg-primary-600 hover:bg-primary-700"
+            />
+          </div>
+          
+          {/* Quick Support Button */}
+          <div className="hidden sm:block md:hidden">
+            <QuickSupportButton className="text-sm" />
+          </div>
+          
           {/* Organization Switcher */}
           <div className="hidden sm:block">
             <OrganizationSwitcher className="w-64" />
