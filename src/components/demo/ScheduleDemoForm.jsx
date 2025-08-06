@@ -475,155 +475,190 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
     );
   };
 
-  const renderStep4 = () => (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      className="space-y-8"
-    >
-      <div className="text-center mb-6">
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">The Connection</h3>
-        <p className="text-gray-600">Let's personalize your demo experience</p>
-      </div>
+  const renderStep4 = () => {
+    console.log('renderStep4 called, stakeholderOptions:', stakeholderOptions);
+    console.log('personalWinOptions:', personalWinOptions);
+    console.log('demoTimeOptions:', demoTimeOptions);
+    console.log('demoLengthOptions:', demoLengthOptions);
+    
+    try {
+      return (
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          className="space-y-8"
+        >
+          <div className="text-center mb-6">
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">The Connection</h3>
+            <p className="text-gray-600">Let's personalize your demo experience</p>
+          </div>
 
-      <div>
-        <h4 className="text-lg font-semibold text-gray-900 mb-4">
-          Who else will be in the room (virtually or literally) when you present this solution?
-          <span className="text-red-500 ml-1">*</span>
-        </h4>
-        <p className="text-sm text-gray-500 mb-4">Select all that apply</p>
-        
-        <div className="space-y-3">
-          {stakeholderOptions.map((stakeholder) => (
-            <label key={stakeholder} className="flex items-center cursor-pointer p-3 border border-gray-200 rounded-lg hover:border-primary-300 hover:bg-primary-50 transition-all">
-              <input
-                type="checkbox"
-                value={stakeholder}
-                checked={formData.stakeholders.includes(stakeholder)}
-                onChange={(e) => {
-                  const newStakeholders = e.target.checked 
-                    ? [...formData.stakeholders, stakeholder]
-                    : formData.stakeholders.filter(s => s !== stakeholder);
-                  handleInputChange('stakeholders', newStakeholders);
-                }}
-                className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
+          <div>
+            <h4 className="text-lg font-semibold text-gray-900 mb-4">
+              Who else will be in the room (virtually or literally) when you present this solution?
+              <span className="text-red-500 ml-1">*</span>
+            </h4>
+            <p className="text-sm text-gray-500 mb-4">Select all that apply</p>
+            
+            <div className="space-y-3">
+              {(stakeholderOptions || []).map((stakeholder, index) => {
+                const safeStakeholder = String(stakeholder || `option-${index}`);
+                return (
+                  <label key={safeStakeholder} className="flex items-center cursor-pointer p-3 border border-gray-200 rounded-lg hover:border-primary-300 hover:bg-primary-50 transition-all">
+                    <input
+                      type="checkbox"
+                      value={safeStakeholder}
+                      checked={(formData.stakeholders || []).includes(safeStakeholder)}
+                      onChange={(e) => {
+                        const currentStakeholders = formData.stakeholders || [];
+                        const newStakeholders = e.target.checked 
+                          ? [...currentStakeholders, safeStakeholder]
+                          : currentStakeholders.filter(s => s !== safeStakeholder);
+                        handleInputChange('stakeholders', newStakeholders);
+                      }}
+                      className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
+                    />
+                    <span className="ml-3 text-gray-700 font-medium">{safeStakeholder}</span>
+                  </label>
+                );
+              })}
+            </div>
+            
+            {showValidation && (!formData.stakeholders || formData.stakeholders.length === 0) && (
+              <p className="text-red-500 text-sm mt-2">Please select at least one stakeholder</p>
+            )}
+          </div>
+
+          <div>
+            <h4 className="text-lg font-semibold text-gray-900 mb-4">
+              Beyond business results, what would solving this mean for you personally?
+              <span className="text-red-500 ml-1">*</span>
+            </h4>
+            
+            <div className="space-y-3">
+              {(personalWinOptions || []).map((option, index) => {
+                const safeOption = option || {};
+                const safeValue = String(safeOption.value || `personal-win-${index}`);
+                const safeLabel = String(safeOption.label || `Option ${index + 1}`);
+                
+                return (
+                  <label key={safeValue} className="flex items-start cursor-pointer p-3 border border-gray-200 rounded-lg hover:border-primary-300 hover:bg-primary-50 transition-all">
+                    <input
+                      type="radio"
+                      name="personalWin"
+                      value={safeValue}
+                      checked={formData.personalWin === safeValue}
+                      onChange={(e) => handleInputChange('personalWin', e.target.value)}
+                      className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500 mt-1"
+                    />
+                    <span className="ml-3 text-gray-700 font-medium leading-relaxed">{safeLabel}</span>
+                  </label>
+                );
+              })}
+            </div>
+            
+            {showValidation && !formData.personalWin && (
+              <p className="text-red-500 text-sm mt-2">Please select what this means for you personally</p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                Name <span className="text-red-500">*</span>
+              </label>
+              <Input
+                value={formData.name || ''}
+                onChange={(e) => handleInputChange('name', e.target.value)}
+                placeholder="Your full name"
+                icon={<BriefcaseIcon className="w-5 h-5" />}
               />
-              <span className="ml-3 text-gray-700 font-medium">{String(stakeholder)}</span>
-            </label>
-          ))}
-        </div>
-        
-        {showValidation && formData.stakeholders.length === 0 && (
-          <p className="text-red-500 text-sm mt-2">Please select at least one stakeholder</p>
-        )}
-      </div>
+              {showValidation && !(formData.name || '').trim() && (
+                <p className="text-red-500 text-xs mt-1">Name is required</p>
+              )}
+            </div>
 
-      <div>
-        <h4 className="text-lg font-semibold text-gray-900 mb-4">
-          Beyond business results, what would solving this mean for you personally?
-          <span className="text-red-500 ml-1">*</span>
-        </h4>
-        
-        <div className="space-y-3">
-          {personalWinOptions.map((option) => (
-            <label key={option.value} className="flex items-start cursor-pointer p-3 border border-gray-200 rounded-lg hover:border-primary-300 hover:bg-primary-50 transition-all">
-              <input
-                type="radio"
-                name="personalWin"
-                value={option.value}
-                checked={formData.personalWin === option.value}
-                onChange={(e) => handleInputChange('personalWin', e.target.value)}
-                className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500 mt-1"
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                Email <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="email"
+                value={formData.email || ''}
+                onChange={(e) => handleInputChange('email', e.target.value)}
+                placeholder="your@company.com"
+                icon={<EnvelopeIcon className="w-5 h-5" />}
               />
-              <span className="ml-3 text-gray-700 font-medium leading-relaxed">{String(option.label || '')}</span>
-            </label>
-          ))}
-        </div>
-        
-        {showValidation && !formData.personalWin && (
-          <p className="text-red-500 text-sm mt-2">Please select what this means for you personally</p>
-        )}
-      </div>
+              {showValidation && !(formData.email || '').trim() && (
+                <p className="text-red-500 text-xs mt-1">Email is required</p>
+              )}
+            </div>
+          </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-semibold text-gray-900 mb-2">
-            Name <span className="text-red-500">*</span>
-          </label>
-          <Input
-            value={formData.name}
-            onChange={(e) => handleInputChange('name', e.target.value)}
-            placeholder="Your full name"
-            icon={<BriefcaseIcon className="w-5 h-5" />}
-          />
-          {showValidation && !formData.name.trim() && (
-            <p className="text-red-500 text-xs mt-1">Name is required</p>
-          )}
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                Best time for demo <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.bestDemoTime || ''}
+                onChange={(e) => handleInputChange('bestDemoTime', e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="">Choose...</option>
+                {(demoTimeOptions || []).map((option, index) => {
+                  const safeOption = String(option || `time-option-${index}`);
+                  return (
+                    <option key={safeOption} value={safeOption}>
+                      {safeOption}
+                    </option>
+                  );
+                })}
+              </select>
+              {showValidation && !formData.bestDemoTime && (
+                <p className="text-red-500 text-xs mt-1">Please select best demo time</p>
+              )}
+            </div>
 
-        <div>
-          <label className="block text-sm font-semibold text-gray-900 mb-2">
-            Email <span className="text-red-500">*</span>
-          </label>
-          <Input
-            type="email"
-            value={formData.email}
-            onChange={(e) => handleInputChange('email', e.target.value)}
-            placeholder="your@company.com"
-            icon={<EnvelopeIcon className="w-5 h-5" />}
-          />
-          {showValidation && !formData.email.trim() && (
-            <p className="text-red-500 text-xs mt-1">Email is required</p>
-          )}
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                Preferred demo length <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.preferredDemoLength || ''}
+                onChange={(e) => handleInputChange('preferredDemoLength', e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="">Choose...</option>
+                {(demoLengthOptions || []).map((option, index) => {
+                  const safeOption = String(option || `length-option-${index}`);
+                  return (
+                    <option key={safeOption} value={safeOption}>
+                      {safeOption}
+                    </option>
+                  );
+                })}
+              </select>
+              {showValidation && !formData.preferredDemoLength && (
+                <p className="text-red-500 text-xs mt-1">Please select preferred demo length</p>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      );
+    } catch (error) {
+      console.error('Error in renderStep4:', error);
+      return (
+        <div className="text-center p-6">
+          <p className="text-red-600">Error loading step 4. Please try again.</p>
+          <button onClick={() => setCurrentStep(3)} className="mt-4 text-blue-600">
+            Go Back
+          </button>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-semibold text-gray-900 mb-2">
-            Best time for demo <span className="text-red-500">*</span>
-          </label>
-          <select
-            value={formData.bestDemoTime}
-            onChange={(e) => handleInputChange('bestDemoTime', e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-          >
-            <option value="">Choose...</option>
-            {demoTimeOptions.map((option) => (
-              <option key={option} value={option}>
-                {String(option || '')}
-              </option>
-            ))}
-          </select>
-          {showValidation && !formData.bestDemoTime && (
-            <p className="text-red-500 text-xs mt-1">Please select best demo time</p>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-gray-900 mb-2">
-            Preferred demo length <span className="text-red-500">*</span>
-          </label>
-          <select
-            value={formData.preferredDemoLength}
-            onChange={(e) => handleInputChange('preferredDemoLength', e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-          >
-            <option value="">Choose...</option>
-            {demoLengthOptions.map((option) => (
-              <option key={option} value={option}>
-                {String(option || '')}
-              </option>
-            ))}
-          </select>
-          {showValidation && !formData.preferredDemoLength && (
-            <p className="text-red-500 text-xs mt-1">Please select preferred demo length</p>
-          )}
-        </div>
-      </div>
-    </motion.div>
-  );
+      );
+    }
+  };
 
   const renderStepContent = () => {
     try {
