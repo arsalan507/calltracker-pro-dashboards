@@ -247,7 +247,7 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
                 onChange={(e) => handleInputChange('triggerEvent', e.target.value)}
                 className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500 mt-1"
               />
-              <span className="ml-3 text-gray-700 font-medium leading-relaxed">{option.label}</span>
+              <span className="ml-3 text-gray-700 font-medium leading-relaxed">{String(option.label || '')}</span>
             </label>
           ))}
         </div>
@@ -274,7 +274,7 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
                 onChange={(e) => handleInputChange('costOfInaction', e.target.value)}
                 className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
               />
-              <span className="ml-3 text-gray-700 font-medium">{option.label}</span>
+              <span className="ml-3 text-gray-700 font-medium">{String(option.label || '')}</span>
             </label>
           ))}
         </div>
@@ -320,7 +320,7 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
                 }}
                 className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500 mt-1"
               />
-              <span className="ml-3 text-gray-700 font-medium leading-relaxed">{option.label}</span>
+              <span className="ml-3 text-gray-700 font-medium leading-relaxed">{String(option.label || '')}</span>
             </label>
           ))}
         </div>
@@ -369,7 +369,7 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
                 }}
                 className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
               />
-              <span className="ml-2 text-sm text-gray-700 font-medium">{integration}</span>
+              <span className="ml-2 text-sm text-gray-700 font-medium">{String(integration || '')}</span>
             </label>
           ))}
         </div>
@@ -509,7 +509,7 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
                 }}
                 className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
               />
-              <span className="ml-3 text-gray-700 font-medium">{stakeholder}</span>
+              <span className="ml-3 text-gray-700 font-medium">{String(stakeholder)}</span>
             </label>
           ))}
         </div>
@@ -536,7 +536,7 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
                 onChange={(e) => handleInputChange('personalWin', e.target.value)}
                 className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500 mt-1"
               />
-              <span className="ml-3 text-gray-700 font-medium leading-relaxed">{option.label}</span>
+              <span className="ml-3 text-gray-700 font-medium leading-relaxed">{String(option.label || '')}</span>
             </label>
           ))}
         </div>
@@ -592,7 +592,7 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
             <option value="">Choose...</option>
             {demoTimeOptions.map((option) => (
               <option key={option} value={option}>
-                {option}
+                {String(option || '')}
               </option>
             ))}
           </select>
@@ -613,7 +613,7 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
             <option value="">Choose...</option>
             {demoLengthOptions.map((option) => (
               <option key={option} value={option}>
-                {option}
+                {String(option || '')}
               </option>
             ))}
           </select>
@@ -627,6 +627,8 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
 
   const renderStepContent = () => {
     try {
+      console.log('Rendering step:', currentStep, 'formData:', JSON.stringify(formData, null, 2));
+      
       switch (currentStep) {
         case 1:
           return renderStep1();
@@ -648,7 +650,7 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
           );
       }
     } catch (error) {
-      console.error('Error rendering step content:', error);
+      console.error('Error rendering step content:', error, 'Current step:', currentStep, 'Form data:', formData);
       return (
         <div className="text-center p-6">
           <p className="text-red-600">Error loading form step. Please try again.</p>
