@@ -12,7 +12,10 @@ const ScheduleDemoButton = ({
 }) => {
   const [showDemoForm, setShowDemoForm] = useState(false);
 
-  const handleClick = () => {
+  const handleClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('ScheduleDemoButton clicked - opening form');
     setShowDemoForm(true);
   };
 
@@ -23,6 +26,8 @@ const ScheduleDemoButton = ({
         variant={variant}
         size={size}
         className={`flex items-center space-x-2 ${className}`}
+        type="button"
+        data-demo-button="schedule"
       >
         {showIcon && <CalendarIcon className="w-5 h-5" />}
         <span>{text}</span>
@@ -40,10 +45,19 @@ const ScheduleDemoButton = ({
 export const QuickSupportButton = ({ className = '' }) => {
   const [showDemoForm, setShowDemoForm] = useState(false);
 
+  const handleClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('QuickSupportButton clicked - opening form');
+    setShowDemoForm(true);
+  };
+
   return (
     <>
       <button
-        onClick={() => setShowDemoForm(true)}
+        onClick={handleClick}
+        type="button"
+        data-demo-button="quick-support"
         className={`
           inline-flex items-center space-x-2 px-4 py-2 
           bg-gradient-to-r from-green-500 to-green-600 

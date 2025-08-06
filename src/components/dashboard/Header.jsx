@@ -83,14 +83,14 @@ const Header = ({ onMenuClick }) => {
           <div className="hidden md:block">
             <ScheduleDemoButton 
               size="sm" 
-              text="Schedule Demo"
-              className="bg-primary-600 hover:bg-primary-700"
+              text="Request Demo"
+              className="bg-primary-600 hover:bg-primary-700 relative z-10"
             />
           </div>
           
           {/* Quick Support Button */}
           <div className="hidden sm:block md:hidden">
-            <QuickSupportButton className="text-sm" />
+            <QuickSupportButton className="text-sm relative z-10" />
           </div>
           
           {/* Organization Switcher */}

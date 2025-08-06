@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import { Button } from '../common';
+import { ScheduleDemoButton } from '../demo';
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -80,13 +81,11 @@ const Header = () => {
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button 
+            <ScheduleDemoButton 
               variant="outline" 
-              onClick={() => scrollToSection('contact')}
+              text="Request Demo"
               className={!isScrolled ? 'border-white text-white hover:bg-white hover:text-gray-900' : ''}
-            >
-              Request Demo
-            </Button>
+            />
             <Button 
               variant="primary"
               onClick={() => window.location.href = '/login'}
@@ -127,13 +126,11 @@ const Header = () => {
                 </button>
               ))}
               <div className="border-t pt-4 space-y-3">
-                <Button 
+                <ScheduleDemoButton 
                   variant="outline" 
+                  text="Request Demo"
                   className="w-full"
-                  onClick={() => scrollToSection('contact')}
-                >
-                  Request Demo
-                </Button>
+                />
                 <Button 
                   variant="primary" 
                   className="w-full"
