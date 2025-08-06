@@ -10,6 +10,7 @@ import {
   VideoCameraIcon
 } from '@heroicons/react/24/outline';
 import { Button, Input, Card } from '../common';
+import { ScheduleDemoButton } from '../demo';
 import toast from 'react-hot-toast';
 import { registrationService } from '../../services/registrationService';
 
@@ -237,9 +238,29 @@ const Contact = () => {
                         <h4 className="font-semibold text-gray-900 mb-1">{option.title}</h4>
                         <p className="text-gray-600 text-sm">{option.description}</p>
                       </div>
-                      <Button variant="outline" size="sm">
-                        {option.action}
-                      </Button>
+                      {option.title === 'Schedule Demo' ? (
+                        <ScheduleDemoButton 
+                          variant="outline" 
+                          size="sm"
+                          text={option.action}
+                          showIcon={false}
+                        />
+                      ) : (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            if (option.title === 'Phone Support') {
+                              window.open('tel:+1-800-CALLTRACKER', '_self');
+                            } else if (option.title === 'Live Chat') {
+                              // You can integrate live chat here
+                              toast.info('Live chat coming soon!');
+                            }
+                          }}
+                        >
+                          {option.action}
+                        </Button>
+                      )}
                     </div>
                   </Card>
                 ))}

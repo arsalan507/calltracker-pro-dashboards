@@ -9,7 +9,7 @@ import {
   BriefcaseIcon,
   SpeakerWaveIcon
 } from '@heroicons/react/24/outline';
-import { Button, Input, Modal } from '../common';
+import { Button, Input } from '../common';
 import toast from 'react-hot-toast';
 
 const ScheduleDemoForm = ({ isOpen, onClose }) => {
@@ -110,20 +110,27 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
   };
 
   const handleNext = () => {
+    console.log('handleNext called - currentStep:', currentStep, 'formData:', formData);
+    
     if (!validateStep(currentStep)) {
+      console.log('Validation failed for step:', currentStep);
       setShowValidation(true);
       return;
     }
 
     if (currentStep === 1 && (formData.teamSize === 'upto2')) {
+      console.log('Small team size detected, showing validation message');
       // Show team size validation message like in the screenshots
       setCurrentStep(2.5); // Special step for team size validation
       return;
     }
 
     if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
+      const nextStep = currentStep + 1;
+      console.log('Moving to next step:', nextStep);
+      setCurrentStep(nextStep);
     } else {
+      console.log('Final step reached, submitting form');
       handleSubmit();
     }
   };
@@ -139,14 +146,20 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
   };
 
   const handleSubmit = async () => {
+    console.log('Submitting form with data:', formData);
     setIsSubmitting(true);
+    
     try {
+      // Validate final form data
+      if (!formData.name || !formData.phone || !formData.companyEmail) {
+        throw new Error('Please fill in all required fields');
+      }
+      
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      console.log('Demo request submitted:', formData);
+      console.log('Demo request submitted successfully:', formData);
       toast.success('Demo request submitted successfully! We\'ll contact you soon.');
-      onClose();
       
       // Reset form
       setFormData({
@@ -156,8 +169,12 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
         hearAboutUs: ''
       });
       setCurrentStep(1);
+      setShowValidation(false);
+      
+      onClose();
     } catch (error) {
-      toast.error('Failed to submit demo request. Please try again.');
+      console.error('Form submission error:', error);
+      toast.error(error.message || 'Failed to submit demo request. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -224,8 +241,8 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
       <div className="flex flex-col space-y-3">
         <Button
           onClick={() => {
-            handleInputChange('teamSize', '3-5');
-            setCurrentStep(2);
+            handleInputChange('teamSize', '');
+            setCurrentStep(1);
           }}
           className="w-full"
         >
@@ -470,19 +487,39 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
   );
 
   const renderStepContent = () => {
-    switch (currentStep) {
-      case 1:
-        return renderStep1();
-      case 2.5:
-        return renderStep2Point5();
-      case 2:
-        return renderStep2();
-      case 3:
-        return renderStep3();
-      case 4:
-        return renderStep4();
-      default:
-        return null;
+    try {
+      switch (currentStep) {
+        case 1:
+          return renderStep1();
+        case 2.5:
+          return renderStep2Point5();
+        case 2:
+          return renderStep2();
+        case 3:
+          return renderStep3();
+        case 4:
+          return renderStep4();
+        default:
+          console.error('Invalid step:', currentStep);
+          return (
+            <div className="text-center p-6">
+              <p className="text-gray-600">Something went wrong. Please refresh and try again.</p>
+              <Button onClick={() => setCurrentStep(1)} className="mt-4">
+                Start Over
+              </Button>
+            </div>
+          );
+      }
+    } catch (error) {
+      console.error('Error rendering step content:', error);
+      return (
+        <div className="text-center p-6">
+          <p className="text-red-600">Error loading form step. Please try again.</p>
+          <Button onClick={() => setCurrentStep(1)} className="mt-4">
+            Restart Form
+          </Button>
+        </div>
+      );
     }
   };
 
@@ -491,9 +528,19 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
     return Math.min(currentStep, totalSteps);
   };
 
+  if (!isOpen) return null;
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="lg">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+      <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        {/* Background overlay */}
+        <div 
+          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
+          onClick={onClose}
+        ></div>
+        
+        {/* Modal panel */}
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">Book a demo</h2>
@@ -562,8 +609,9 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
             </Button>
           </div>
         )}
+        </div>
       </div>
-    </Modal>
+    </div>
   );
 };
 
