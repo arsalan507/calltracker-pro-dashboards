@@ -186,8 +186,16 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
       const topVictory = formData.victoryPriorities[0];
       const victoryLabel = victoryOptions.find(opt => opt.value === topVictory)?.label || 'your goals';
       
+      // Extract safe challenge description
+      const challengeText = triggerLabel.includes('📞') ? 'call tracking challenges' :
+                           triggerLabel.includes('🔥') ? 'deal conversion issues' :
+                           triggerLabel.includes('📊') ? 'campaign attribution problems' :
+                           triggerLabel.includes('🎯') ? 'lead quality concerns' :
+                           triggerLabel.includes('💔') ? 'competitor threats' :
+                           triggerLabel.includes('🚀') ? 'scaling challenges' : 'your business needs';
+      
       toast.success(
-        `🎯 Perfect! I'm preparing a demo focused on ${victoryLabel.toLowerCase()} and solving ${triggerLabel.split(' ')[1] || 'your challenge'}. Check your email for next steps!`,
+        `🎯 Perfect! I'm preparing a demo focused on ${victoryLabel.toLowerCase()} and solving ${challengeText}. Check your email for next steps!`,
         { duration: 6000 }
       );
       
