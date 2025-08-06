@@ -483,12 +483,7 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
     
     try {
       return (
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          className="space-y-8"
-        >
+        <div className="space-y-8">
           <div className="text-center mb-6">
             <h3 className="text-2xl font-bold text-gray-900 mb-2">The Connection</h3>
             <p className="text-gray-600">Let's personalize your demo experience</p>
@@ -645,7 +640,7 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
               )}
             </div>
           </div>
-        </motion.div>
+        </div>
       );
     } catch (error) {
       console.error('Error in renderStep4:', error);
@@ -737,9 +732,13 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
 
           {/* Content */}
           <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 200px)' }}>
-            <AnimatePresence mode="wait">
-              {renderStepContent()}
-            </AnimatePresence>
+            {currentStep === 4 ? (
+              renderStepContent()
+            ) : (
+              <AnimatePresence mode="wait">
+                {renderStepContent()}
+              </AnimatePresence>
+            )}
           </div>
 
           {/* Footer */}
