@@ -32,8 +32,10 @@ api.interceptors.request.use(
     }
     
     // Add organization context for multi-tenant data isolation
-    // Backend CORS fix is deployed and working for actual requests
-    if (currentOrganization) {
+    // Skip X-Organization-ID header for login endpoint to avoid CORS preflight caching issues
+    const isLoginEndpoint = config.url?.includes('/auth/login');
+    
+    if (currentOrganization && !isLoginEndpoint) {
       const orgData = JSON.parse(currentOrganization);
       config.headers['X-Organization-ID'] = orgData._id || orgData.id;
     }
