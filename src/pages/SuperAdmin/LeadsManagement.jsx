@@ -11,13 +11,11 @@ import {
 } from '@heroicons/react/24/outline';
 import { Card, Button } from '../../components/common';
 import { formatDistanceToNow } from 'date-fns';
-import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { runCORSTests } from '../../utils/corsTest';
 import { demoService } from '../../services/demoService';
 
 const LeadsManagement = () => {
-  const { user } = useAuth();
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

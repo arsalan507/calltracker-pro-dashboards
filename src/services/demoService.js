@@ -1,4 +1,3 @@
-import api from './api';
 
 const API_BASE_URL = 'https://calltrackerpro-backend.vercel.app/api';
 
