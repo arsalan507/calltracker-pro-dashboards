@@ -7,17 +7,39 @@ export const demoService = {
     try {
       console.log('📝 Submitting demo request:', demoData);
       
+      // Transform field names to match backend expectations
+      const backendData = {
+        name: demoData.name,
+        email: demoData.email,
+        phone: demoData.phone || '',
+        company: demoData.company || '',
+        urgency: demoData.urgency,
+        timeline: demoData.timeline,
+        budget: demoData.budget,
+        current_pain: demoData.currentPain, // Backend expects snake_case
+        message: demoData.message || ''
+      };
+
+      console.log('📤 Sending to backend:', backendData);
+      
       const response = await fetch(`${API_BASE_URL}/demo-requests`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(demoData)
+        body: JSON.stringify(backendData)
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Failed to submit demo: ${response.statusText}`);
+        let errorMessage = `Failed to submit demo: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+          console.error('🚨 Backend error details:', errorData);
+        } catch (parseError) {
+          console.error('🚨 Could not parse error response:', parseError);
+        }
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
