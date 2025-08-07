@@ -38,33 +38,6 @@ class RealTimeService {
       console.log('🔄 SSE endpoint not available yet - real-time features disabled');
       return;
 
-      this.eventSource.onopen = (event) => {
-        console.log('✅ SSE connection established');
-        this.isConnected = true;
-        this.reconnectAttempts = 0;
-        this.reconnectDelay = 1000;
-        this.emit('connection', { status: 'connected', type: 'sse' });
-      };
-
-      this.eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log('📨 SSE message received:', data);
-          this.handleSSEMessage(data);
-        } catch (error) {
-          console.error('🚨 Error parsing SSE message:', error);
-        }
-      };
-
-      this.eventSource.onerror = (event) => {
-        console.error('🚨 SSE connection error:', event);
-        this.isConnected = false;
-        this.emit('connection', { status: 'error', type: 'sse', error: event });
-        
-        // Attempt to reconnect
-        this.attemptSSEReconnect();
-      };
-
     } catch (error) {
       console.error('🚨 Error initializing SSE:', error);
     }
