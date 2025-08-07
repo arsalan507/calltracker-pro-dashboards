@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  Cog6ToothIcon,
   BuildingOfficeIcon,
   BellIcon,
   ShieldCheckIcon,

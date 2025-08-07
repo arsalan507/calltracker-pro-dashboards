@@ -153,7 +153,7 @@ const Dashboard = () => {
       toast.error('Failed to load dashboard data');
       setDashboardData(prev => ({ ...prev, loading: false }));
     }
-  }, [canViewAllTickets]);
+  }, [canViewAllTickets, user, userRole]);
 
   useEffect(() => {
     fetchDashboardData();
