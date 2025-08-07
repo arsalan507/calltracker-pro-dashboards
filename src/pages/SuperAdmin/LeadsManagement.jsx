@@ -6,7 +6,6 @@ import {
   EnvelopeIcon,
   EyeIcon,
   CalendarIcon,
-  UserPlusIcon,
   ExclamationTriangleIcon,
   FireIcon
 } from '@heroicons/react/24/outline';
@@ -26,67 +25,6 @@ const LeadsManagement = () => {
   const [selectedLead, setSelectedLead] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
-  // Mock data - replace with actual API calls
-  const mockLeads = [
-    {
-      id: '1',
-      name: 'Arsalan Ahmed',
-      email: 'arsalanahmed507@gmail.com',
-      company: '567890',
-      phone: '0538180217',
-      urgency: 'urgent',
-      currentPain: 'wasted-ad-spend',
-      budget: '5k-10k',
-      timeline: 'this-week',
-      message: 'Need better call tracking ASAP!',
-      priority: 'high',
-      segment: 'enterprise',
-      leadScore: 95,
-      status: 'new',
-      followUpDate: new Date(Date.now() - 86400000), // Yesterday (overdue)
-      createdAt: new Date(Date.now() - 3600000),
-      updatedAt: new Date(Date.now() - 1800000)
-    },
-    {
-      id: '2',
-      name: 'John Smith',
-      email: 'john@techcorp.com',
-      company: 'Tech Corp',
-      phone: '+1234567890',
-      urgency: 'planned',
-      currentPain: 'poor-roi-tracking',
-      budget: '1k-5k',
-      timeline: 'this-month',
-      message: 'Looking for ROI tracking solution',
-      priority: 'medium',
-      segment: 'mid-market',
-      leadScore: 72,
-      status: 'contacted',
-      followUpDate: new Date(),
-      createdAt: new Date(Date.now() - 7200000),
-      updatedAt: new Date(Date.now() - 3600000)
-    },
-    {
-      id: '3',
-      name: 'Sarah Wilson',
-      email: 'sarah@startup.io',
-      company: 'Startup Inc',
-      phone: '+1987654321',
-      urgency: 'exploring',
-      currentPain: 'manual-tracking',
-      budget: 'under-1k',
-      timeline: 'flexible',
-      message: 'Researching call tracking options',
-      priority: 'low',
-      segment: 'small-business',
-      leadScore: 45,
-      status: 'new',
-      followUpDate: new Date(Date.now() + 86400000), // Tomorrow
-      createdAt: new Date(Date.now() - 10800000),
-      updatedAt: new Date(Date.now() - 10800000)
-    }
-  ];
-
   const metrics = {
     totalLeads: 156,
     highPriorityCount: 23,
@@ -101,6 +39,67 @@ const LeadsManagement = () => {
   };
 
   useEffect(() => {
+    // Mock data - replace with actual API calls
+    const mockLeads = [
+      {
+        id: '1',
+        name: 'Arsalan Ahmed',
+        email: 'arsalanahmed507@gmail.com',
+        company: '567890',
+        phone: '0538180217',
+        urgency: 'urgent',
+        currentPain: 'wasted-ad-spend',
+        budget: '5k-10k',
+        timeline: 'this-week',
+        message: 'Need better call tracking ASAP!',
+        priority: 'high',
+        segment: 'enterprise',
+        leadScore: 95,
+        status: 'new',
+        followUpDate: new Date(Date.now() - 86400000), // Yesterday (overdue)
+        createdAt: new Date(Date.now() - 3600000),
+        updatedAt: new Date(Date.now() - 1800000)
+      },
+      {
+        id: '2',
+        name: 'John Smith',
+        email: 'john@techcorp.com',
+        company: 'Tech Corp',
+        phone: '+1234567890',
+        urgency: 'planned',
+        currentPain: 'poor-roi-tracking',
+        budget: '1k-5k',
+        timeline: 'this-month',
+        message: 'Looking for ROI tracking solution',
+        priority: 'medium',
+        segment: 'mid-market',
+        leadScore: 72,
+        status: 'contacted',
+        followUpDate: new Date(),
+        createdAt: new Date(Date.now() - 7200000),
+        updatedAt: new Date(Date.now() - 3600000)
+      },
+      {
+        id: '3',
+        name: 'Sarah Wilson',
+        email: 'sarah@startup.io',
+        company: 'Startup Inc',
+        phone: '+1987654321',
+        urgency: 'exploring',
+        currentPain: 'manual-tracking',
+        budget: 'under-1k',
+        timeline: 'flexible',
+        message: 'Researching call tracking options',
+        priority: 'low',
+        segment: 'small-business',
+        leadScore: 45,
+        status: 'new',
+        followUpDate: new Date(Date.now() + 86400000), // Tomorrow
+        createdAt: new Date(Date.now() - 10800000),
+        updatedAt: new Date(Date.now() - 10800000)
+      }
+    ];
+
     // Simulate API call
     setTimeout(() => {
       setLeads(mockLeads);
