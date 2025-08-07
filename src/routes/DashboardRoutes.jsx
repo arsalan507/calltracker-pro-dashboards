@@ -22,6 +22,10 @@ import TicketKanban from '../pages/CRM/TicketKanban';
 import CRMAnalytics from '../pages/CRM/CRMAnalytics';
 import CallLogs from '../pages/CRM/CallLogs';
 
+// Organization Pages (Organization Admin)
+import OrganizationUsers from '../pages/Organization/OrganizationUsers';
+import OrganizationSettings from '../pages/Organization/OrganizationSettings';
+
 // Dashboard Pages (All authenticated users)
 import Dashboard from '../pages/Dashboard/Dashboard';
 import Profile from '../pages/Dashboard/Profile';
@@ -121,10 +125,35 @@ const DashboardRoutes = () => {
                 <Route path="analytics" element={<Analytics />} />
                 <Route path="settings" element={<Settings />} />
               </Routes>
+            ) : userRole === 'org_admin' ? (
+              <Navigate to="/dashboard/organization/users" replace />
             ) : (
               <Navigate 
                 to={
-                  ['org_admin', 'manager'].includes(userRole) ? '/dashboard/crm/tickets' :
+                  ['manager'].includes(userRole) ? '/dashboard/crm/tickets' :
+                  '/dashboard'
+                } 
+                replace 
+              />
+            )
+          } 
+        />
+
+        {/* Organization Admin Routes */}
+        <Route 
+          path="organization/*" 
+          element={
+            userRole === 'org_admin' ? (
+              <Routes>
+                <Route index element={<Navigate to="users" replace />} />
+                <Route path="users" element={<OrganizationUsers />} />
+                <Route path="settings" element={<OrganizationSettings />} />
+              </Routes>
+            ) : (
+              <Navigate 
+                to={
+                  userRole === 'super_admin' ? '/dashboard/admin' :
+                  ['manager'].includes(userRole) ? '/dashboard/crm/tickets' :
                   '/dashboard'
                 } 
                 replace 

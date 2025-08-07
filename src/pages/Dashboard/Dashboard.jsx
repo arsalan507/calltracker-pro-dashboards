@@ -6,6 +6,7 @@ import { Card, Button } from '../../components/common';
 import { ticketService } from '../../services/ticketService';
 import { callLogService } from '../../services/callLogService';
 import { notificationService } from '../../services/notificationService';
+import { createRoleBasedApiClient } from '../../utils/roleBasedApi';
 import toast from 'react-hot-toast';
 import {
   TicketIcon,
@@ -38,6 +39,8 @@ const Dashboard = () => {
     recentCalls: [],
     loading: true
   });
+  
+  const [organizationInfo, setOrganizationInfo] = useState(null);
 
   const userRole = getUserRole();
 
@@ -45,21 +48,50 @@ const Dashboard = () => {
     try {
       setDashboardData(prev => ({ ...prev, loading: true }));
 
+      // Fetch organization info for org_admin users
+      if (userRole === 'org_admin' && user?.organizationId) {
+        try {
+          const apiClient = createRoleBasedApiClient(user);
+          const orgResponse = await apiClient.getOrganization(user.organizationId);
+          setOrganizationInfo(orgResponse?.data);
+        } catch (error) {
+          console.warn('Could not fetch organization info:', error);
+        }
+      }
+
       // Fetch data based on user role
       const promises = [];
 
-      // Ticket statistics
+      // Ticket statistics - try stats first, fallback to regular tickets
+      let ticketsPromise;
       if (canViewAllTickets()) {
-        promises.push(ticketService.getTicketStats());
+        ticketsPromise = ticketService.getTicketStats().catch(async (error) => {
+          console.warn('Stats endpoint failed, falling back to regular tickets:', error);
+          // Fallback to regular tickets if stats endpoint fails
+          const ticketsData = await ticketService.getTickets({ limit: 20 });
+          return { fallback: true, data: ticketsData };
+        });
       } else {
-        promises.push(ticketService.getMyTickets({ limit: 10 }));
+        ticketsPromise = ticketService.getMyTickets({ limit: 10 });
       }
 
+      promises.push(ticketsPromise);
+
       // Call logs
-      promises.push(callLogService.getCallLogs({ limit: 10 }));
+      promises.push(
+        callLogService.getCallLogs({ limit: 10 }).catch((error) => {
+          console.warn('Call logs failed:', error);
+          return { data: [] };
+        })
+      );
 
       // Notifications
-      promises.push(notificationService.getUnreadCount());
+      promises.push(
+        notificationService.getUnreadCount().catch((error) => {
+          console.warn('Notifications failed:', error);
+          return { unread: 0 };
+        })
+      );
 
       const [ticketsResponse, callsResponse, notificationsResponse] = await Promise.all(promises);
 
@@ -67,15 +99,28 @@ const Dashboard = () => {
       let ticketStats = { total: 0, open: 0, overdue: 0, resolved: 0 };
       let recentTickets = [];
 
-      if (canViewAllTickets() && ticketsResponse.stats) {
+      if (ticketsResponse.fallback) {
+        // Using fallback data from regular tickets endpoint
+        console.log('📊 Using fallback ticket data:', ticketsResponse.data);
+        const tickets = ticketsResponse.data?.data || [];
+        recentTickets = tickets.slice(0, 5);
+        ticketStats = {
+          total: tickets.length,
+          open: tickets.filter(t => ['open', 'new'].includes(t.status)).length,
+          overdue: tickets.filter(t => t.isOverdue).length,
+          resolved: tickets.filter(t => t.status === 'resolved').length
+        };
+      } else if (canViewAllTickets() && ticketsResponse.stats) {
+        // Using proper stats endpoint
         ticketStats = ticketsResponse.stats;
         recentTickets = ticketsResponse.recentTickets || [];
       } else if (ticketsResponse.data) {
+        // Using user-specific tickets
         const tickets = ticketsResponse.data;
         recentTickets = tickets.slice(0, 5);
         ticketStats = {
           total: tickets.length,
-          open: tickets.filter(t => t.status === 'open').length,
+          open: tickets.filter(t => ['open', 'new'].includes(t.status)).length,
           overdue: tickets.filter(t => t.isOverdue).length,
           resolved: tickets.filter(t => t.status === 'resolved').length
         };
@@ -140,6 +185,11 @@ const Dashboard = () => {
             </h1>
             <p className="text-gray-600 mt-2">
               {getRoleDisplayName(userRole)} • {getGreeting()}
+              {organizationInfo && (
+                <span className="ml-2 px-2 py-1 bg-primary-100 text-primary-800 rounded-full text-sm font-medium">
+                  {organizationInfo.name}
+                </span>
+              )}
             </p>
           </div>
           <div className="mt-4 md:mt-0 flex space-x-3">
@@ -450,7 +500,7 @@ const getQuickActions = (userRole) => {
     org_admin: [
       { title: 'All Tickets', icon: TicketIcon, path: '/dashboard/crm/tickets' },
       { title: 'Analytics', icon: ChartBarIcon, path: '/dashboard/crm/analytics' },
-      { title: 'Team', icon: UsersIcon, path: '/dashboard/admin/users' },
+      { title: 'Team', icon: UsersIcon, path: '/dashboard/organization/users' },
     ],
     manager: [
       { title: 'Team Tickets', icon: TicketIcon, path: '/dashboard/crm/tickets' },
