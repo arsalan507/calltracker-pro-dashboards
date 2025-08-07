@@ -34,20 +34,9 @@ class RealTimeService {
       // Close existing connection
       this.closeSSE();
 
-      // Use primary URL only for SSE to avoid SSL certificate issues with fallbacks
-      const baseUrl = 'https://calltrackerpro-backend.vercel.app';
-      let sseUrl = `${baseUrl}/tickets/stream?organization_id=${organizationId}`;
-      
-      if (teamId) {
-        sseUrl += `&team_id=${teamId}`;
-      }
-
-      console.log('🔄 Initializing SSE connection:', sseUrl);
-
-      // Note: EventSource doesn't support custom headers, so we pass token as query param
-      sseUrl += `&token=${encodeURIComponent(token)}`;
-
-      this.eventSource = new EventSource(sseUrl);
+      // SSE endpoint not available on backend yet - disable for now
+      console.log('🔄 SSE endpoint not available yet - real-time features disabled');
+      return;
 
       this.eventSource.onopen = (event) => {
         console.log('✅ SSE connection established');

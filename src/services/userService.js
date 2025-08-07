@@ -3,16 +3,41 @@ import api from './api';
 export const userService = {
   async getAllUsers(params = {}) {
     try {
-      console.log('📡 Fetching all users from super admin endpoint...');
+      // Check user role to determine appropriate endpoint
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const userRole = user.role;
+      
+      console.log('📡 Fetching users for role:', userRole);
       console.log('📡 Query params:', params);
       
-      // Use direct fetch with super admin endpoint
       const authToken = localStorage.getItem('authToken');
       if (!authToken) {
         throw new Error('No authentication token found. Please log in again.');
       }
       
-      const url = new URL('/api/super-admin/users', 'https://calltrackerpro-backend.vercel.app');
+      let url;
+      
+      if (userRole === 'super_admin') {
+        // Super admin can access all users
+        url = new URL('/api/super-admin/users', 'https://calltrackerpro-backend.vercel.app');
+      } else if (['org_admin', 'manager'].includes(userRole)) {
+        // Organization admins/managers can access organization users
+        const currentOrg = JSON.parse(localStorage.getItem('currentOrganization') || '{}');
+        const orgId = currentOrg._id || currentOrg.id;
+        if (!orgId) {
+          throw new Error('No organization context found. Please refresh and try again.');
+        }
+        url = new URL(`/api/organizations/${orgId}/users`, 'https://calltrackerpro-backend.vercel.app');
+      } else {
+        // Other roles - return empty for now
+        console.log('📋 User role does not have user management permissions');
+        return {
+          data: [],
+          pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+          message: 'Access denied. Insufficient privileges to view users.'
+        };
+      }
+      
       Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
       
       console.log('📡 Fetching from URL:', url.toString());

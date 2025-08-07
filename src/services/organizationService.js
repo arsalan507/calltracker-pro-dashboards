@@ -295,6 +295,20 @@ export const organizationService = {
       console.error('❌ Error updating organization:', error);
       throw error;
     }
+  },
+
+  async getTeams() {
+    try {
+      // Teams endpoint not available yet - return empty array
+      console.log('🔄 Teams endpoint not available yet - using fallback data');
+      return {
+        success: true,
+        data: []
+      };
+    } catch (error) {
+      console.error('❌ Error fetching teams:', error);
+      throw error;
+    }
   }
 };
 
