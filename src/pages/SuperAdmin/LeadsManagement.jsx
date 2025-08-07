@@ -14,6 +14,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { runCORSTests } from '../../utils/corsTest';
+import { demoService } from '../../services/demoService';
 
 const LeadsManagement = () => {
   const { user } = useAuth();
@@ -39,20 +40,14 @@ const LeadsManagement = () => {
   const [selectedLead, setSelectedLead] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
-  // Get auth token for API calls
-  const userToken = user?.token || localStorage.getItem('authToken');
-
-  // API Base URL
-  const API_BASE_URL = 'https://calltrackerpro-backend.vercel.app/api';
-
   // Fetch leads data from API
   const fetchLeads = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Build query parameters based on current filters
-      const queryParams = new URLSearchParams({
+      // Build filters object for the service
+      const queryFilters = {
         page: pagination.page || 1,
         limit: pagination.limit || 20,
         ...(filters.urgency && filters.urgency !== 'all' && { urgency: filters.urgency }),
@@ -60,32 +55,9 @@ const LeadsManagement = () => {
         ...(filters.status && filters.status !== 'all' && { status: filters.status }),
         ...(filters.timeline && filters.timeline !== 'all' && { timeline: filters.timeline }),
         ...(filters.search && { search: filters.search })
-      });
+      };
 
-      // Make API call to backend
-      const response = await fetch(
-        `${API_BASE_URL}/demo-requests?${queryParams}`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${userToken}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      if (!response.ok) {
-        // Handle 500 error gracefully - demo requests table may not be ready yet
-        if (response.status === 500) {
-          console.warn('Demo requests table not ready yet - using empty data');
-          setLeads([]);
-          setPagination({ page: 1, limit: 20, total: 0, totalPages: 0, hasNext: false, hasPrev: false });
-          return;
-        }
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
+      const result = await demoService.getAllDemos(queryFilters);
 
       if (result.success) {
         // Map snake_case API fields to camelCase for frontend consistency
@@ -140,38 +112,12 @@ const LeadsManagement = () => {
     } finally {
       setLoading(false);
     }
-  }, [userToken, pagination.page, pagination.limit, filters]);
+  }, [pagination.page, pagination.limit, filters]);
 
   // Fetch analytics data from API
   const fetchAnalytics = useCallback(async () => {
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/demo-requests/analytics`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${userToken}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      if (!response.ok) {
-        // Handle 500 error gracefully for analytics endpoint too
-        if (response.status === 500) {
-          console.warn('Demo requests analytics not ready yet - using fallback data');
-          setAnalytics({
-            totalRequests: 0,
-            urgencyBreakdown: { urgent: 0, planned: 0, exploring: 0 },
-            priorityDistribution: { high: 0, medium: 0, low: 0 },
-            conversionRate: 0
-          });
-          return;
-        }
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
+      const result = await demoService.getDemoAnalytics();
 
       if (result.success) {
         setAnalytics(result.data);
@@ -189,28 +135,12 @@ const LeadsManagement = () => {
         });
       }
     }
-  }, [userToken]);
+  }, []);
 
   // Update lead status via API
   const updateLeadStatus = async (leadId, newStatus) => {
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/demo-requests/${leadId}/status`,
-        {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${userToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ status: newStatus })
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
+      const result = await demoService.updateDemoStatus(leadId, newStatus);
 
       if (result.success) {
         toast.success('Lead status updated successfully');
@@ -228,11 +158,9 @@ const LeadsManagement = () => {
 
   // Initial data fetch
   useEffect(() => {
-    if (userToken) {
-      fetchLeads();
-      fetchAnalytics();
-    }
-  }, [fetchLeads, fetchAnalytics, userToken]);
+    fetchLeads();
+    fetchAnalytics();
+  }, [fetchLeads, fetchAnalytics]);
 
   // Server-side filtering is now handled by the API, so we use leads directly
 

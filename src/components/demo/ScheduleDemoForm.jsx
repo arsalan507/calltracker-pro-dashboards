@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { Button } from '../common';
 import toast from 'react-hot-toast';
+import { demoService } from '../../services/demoService';
 
 const ScheduleDemoForm = ({ isOpen, onClose }) => {
   const [formData, setFormData] = useState({
@@ -34,18 +35,16 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
   ];
 
   const budgetOptions = [
-    { value: 'under-1k', label: 'Under $1,000/month' },
     { value: '1k-5k', label: '$1,000 - $5,000/month' },
-    { value: '5k-10k', label: '$5,000 - $10,000/month' },
-    { value: '10k-plus', label: '$10,000+/month' },
-    { value: 'not-sure', label: 'Not sure yet' }
+    { value: '5k-25k', label: '$5,000 - $25,000/month' },
+    { value: '25k-100k', label: '$25,000 - $100,000/month' },
+    { value: '100k+', label: '$100,000+/month' }
   ];
 
   const timelineOptions = [
-    { value: 'this-week', label: 'This week' },
-    { value: 'this-month', label: 'This month' },
+    { value: 'asap', label: 'ASAP - This week' },
+    { value: 'next-week', label: 'Next week' },
     { value: 'next-month', label: 'Next month' },
-    { value: 'next-quarter', label: 'Next quarter' },
     { value: 'flexible', label: 'Flexible timeline' }
   ];
 
@@ -63,11 +62,23 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
         throw new Error('Please fill in all required fields');
       }
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      console.log('Demo request submitted:', formData);
-      
+      console.log('📝 Submitting demo request:', formData);
+
+      const demoData = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        company: formData.company,
+        urgency: formData.urgency, // 'urgent', 'planned', 'exploring'
+        timeline: formData.timeline, // 'asap', 'next-week', 'next-month', 'flexible'
+        budget: formData.budget, // '1k-5k', '5k-25k', '25k-100k', '100k+'
+        currentPain: formData.currentPain, // Pain point selection
+        message: formData.message
+      };
+
+      const response = await demoService.submitDemo(demoData);
+      console.log('✅ Demo submitted successfully:', response);
+
       // Create personalized success message based on urgency
       const urgencyMessage = formData.urgency === 'urgent' 
         ? 'I\'ll prioritize your request and get back to you within 2 hours!'
@@ -85,7 +96,7 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
       
       onClose();
     } catch (error) {
-      console.error('Form submission error:', error);
+      console.error('❌ Demo submission failed:', error);
       toast.error(error.message || 'Failed to submit demo request. Please try again.');
     } finally {
       setIsSubmitting(false);
