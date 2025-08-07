@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   MagnifyingGlassIcon,
@@ -11,10 +11,23 @@ import {
 } from '@heroicons/react/24/outline';
 import { Card, Button } from '../../components/common';
 import { formatDistanceToNow } from 'date-fns';
+import { useAuth } from '../../contexts/AuthContext';
+import toast from 'react-hot-toast';
 
 const LeadsManagement = () => {
+  const { user } = useAuth();
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [analytics, setAnalytics] = useState(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrev: false
+  });
   const [filters, setFilters] = useState({
     search: '',
     priority: 'all',
@@ -25,104 +38,189 @@ const LeadsManagement = () => {
   const [selectedLead, setSelectedLead] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
-  const metrics = {
-    totalLeads: 156,
-    highPriorityCount: 23,
-    urgentCount: 8,
-    conversionRate: '23%',
-    trends: {
-      total: '+12%',
-      highPriority: '+5%',
-      urgent: '+8%',
-      conversion: '+3%'
+  // Get auth token for API calls
+  const userToken = user?.token || localStorage.getItem('authToken');
+
+  // API Base URL
+  const API_BASE_URL = 'https://calltrackerpro-backend.vercel.app/api';
+
+  // Fetch leads data from API
+  const fetchLeads = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Build query parameters based on current filters
+      const queryParams = new URLSearchParams({
+        page: pagination.page || 1,
+        limit: pagination.limit || 20,
+        ...(filters.urgency && filters.urgency !== 'all' && { urgency: filters.urgency }),
+        ...(filters.priority && filters.priority !== 'all' && { priority: filters.priority }),
+        ...(filters.status && filters.status !== 'all' && { status: filters.status }),
+        ...(filters.timeline && filters.timeline !== 'all' && { timeline: filters.timeline }),
+        ...(filters.search && { search: filters.search })
+      });
+
+      // Make API call to backend
+      const response = await fetch(
+        `${API_BASE_URL}/demo-requests?${queryParams}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${userToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Map snake_case API fields to camelCase for frontend consistency
+        const mappedLeads = (result.data || []).map(lead => ({
+          ...lead,
+          currentPain: lead.current_pain || lead.currentPain,
+          leadScore: lead.lead_score || lead.leadScore || 50,
+          followUpDate: lead.follow_up_date ? new Date(lead.follow_up_date) : null,
+          createdAt: lead.created_at ? new Date(lead.created_at) : new Date(),
+          updatedAt: lead.updated_at ? new Date(lead.updated_at) : new Date()
+        }));
+
+        setLeads(mappedLeads);
+        setPagination(result.pagination || {});
+      } else {
+        console.error('API error:', result.message);
+        setError(result.message || 'Failed to fetch leads');
+        setLeads([]);
+      }
+
+    } catch (error) {
+      console.error('Failed to fetch leads:', error);
+      setError('Failed to connect to server. Please try again.');
+      setLeads([]);
+      
+      // Show fallback data in development
+      if (process.env.NODE_ENV === 'development') {
+        // Fallback mock data for development
+        const fallbackLeads = [
+          {
+            id: '1',
+            name: 'Arsalan Ahmed',
+            email: 'arsalanahmed507@gmail.com',
+            company: '567890',
+            phone: '0538180217',
+            urgency: 'urgent',
+            currentPain: 'wasted-ad-spend',
+            budget: '5k-10k',
+            timeline: 'this-week',
+            message: 'Need better call tracking ASAP!',
+            priority: 'high',
+            segment: 'enterprise',
+            leadScore: 95,
+            status: 'new',
+            followUpDate: new Date(Date.now() - 86400000),
+            createdAt: new Date(Date.now() - 3600000),
+            updatedAt: new Date(Date.now() - 1800000)
+          }
+        ];
+        setLeads(fallbackLeads);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [userToken, pagination.page, pagination.limit, filters]);
+
+  // Fetch analytics data from API
+  const fetchAnalytics = useCallback(async () => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/demo-requests/analytics`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${userToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        setAnalytics(result.data);
+      }
+
+    } catch (error) {
+      console.error('Failed to fetch analytics:', error);
+      // Use fallback analytics in development
+      if (process.env.NODE_ENV === 'development') {
+        setAnalytics({
+          totalRequests: 156,
+          urgencyBreakdown: { urgent: 8, planned: 85, exploring: 40 },
+          priorityDistribution: { high: 23, medium: 80, low: 40 },
+          conversionRate: 23
+        });
+      }
+    }
+  }, [userToken]);
+
+  // Update lead status via API
+  const updateLeadStatus = async (leadId, newStatus) => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/demo-requests/${leadId}/status`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${userToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ status: newStatus })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success('Lead status updated successfully');
+        // Refresh leads data
+        fetchLeads();
+      } else {
+        toast.error(result.message || 'Failed to update lead status');
+      }
+
+    } catch (error) {
+      console.error('Failed to update lead status:', error);
+      toast.error('Failed to update lead status');
     }
   };
 
+  // Initial data fetch
   useEffect(() => {
-    // Mock data - replace with actual API calls
-    const mockLeads = [
-      {
-        id: '1',
-        name: 'Arsalan Ahmed',
-        email: 'arsalanahmed507@gmail.com',
-        company: '567890',
-        phone: '0538180217',
-        urgency: 'urgent',
-        currentPain: 'wasted-ad-spend',
-        budget: '5k-10k',
-        timeline: 'this-week',
-        message: 'Need better call tracking ASAP!',
-        priority: 'high',
-        segment: 'enterprise',
-        leadScore: 95,
-        status: 'new',
-        followUpDate: new Date(Date.now() - 86400000), // Yesterday (overdue)
-        createdAt: new Date(Date.now() - 3600000),
-        updatedAt: new Date(Date.now() - 1800000)
-      },
-      {
-        id: '2',
-        name: 'John Smith',
-        email: 'john@techcorp.com',
-        company: 'Tech Corp',
-        phone: '+1234567890',
-        urgency: 'planned',
-        currentPain: 'poor-roi-tracking',
-        budget: '1k-5k',
-        timeline: 'this-month',
-        message: 'Looking for ROI tracking solution',
-        priority: 'medium',
-        segment: 'mid-market',
-        leadScore: 72,
-        status: 'contacted',
-        followUpDate: new Date(),
-        createdAt: new Date(Date.now() - 7200000),
-        updatedAt: new Date(Date.now() - 3600000)
-      },
-      {
-        id: '3',
-        name: 'Sarah Wilson',
-        email: 'sarah@startup.io',
-        company: 'Startup Inc',
-        phone: '+1987654321',
-        urgency: 'exploring',
-        currentPain: 'manual-tracking',
-        budget: 'under-1k',
-        timeline: 'flexible',
-        message: 'Researching call tracking options',
-        priority: 'low',
-        segment: 'small-business',
-        leadScore: 45,
-        status: 'new',
-        followUpDate: new Date(Date.now() + 86400000), // Tomorrow
-        createdAt: new Date(Date.now() - 10800000),
-        updatedAt: new Date(Date.now() - 10800000)
-      }
-    ];
+    if (userToken) {
+      fetchLeads();
+      fetchAnalytics();
+    }
+  }, [fetchLeads, fetchAnalytics, userToken]);
 
-    // Simulate API call
-    setTimeout(() => {
-      setLeads(mockLeads);
-      setLoading(false);
-    }, 1000);
-  }, []);
-
-  const filteredLeads = leads.filter(lead => {
-    const matchesSearch = !filters.search || 
-      lead.name.toLowerCase().includes(filters.search.toLowerCase()) ||
-      lead.email.toLowerCase().includes(filters.search.toLowerCase()) ||
-      lead.company.toLowerCase().includes(filters.search.toLowerCase());
-    
-    const matchesPriority = filters.priority === 'all' || lead.priority === filters.priority;
-    const matchesUrgency = filters.urgency === 'all' || lead.urgency === filters.urgency;
-    const matchesStatus = filters.status === 'all' || lead.status === filters.status;
-    const matchesTimeline = filters.timeline === 'all' || lead.timeline === filters.timeline;
-
-    return matchesSearch && matchesPriority && matchesUrgency && matchesStatus && matchesTimeline;
-  });
+  // Server-side filtering is now handled by the API, so we use leads directly
 
   const handleFilterChange = (filterType, value) => {
     setFilters(prev => ({ ...prev, [filterType]: value }));
+    // Reset to first page when filters change
+    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   return (
@@ -140,26 +238,26 @@ const LeadsManagement = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <MetricCard 
             title="Total Leads" 
-            value={metrics.totalLeads} 
-            trend={metrics.trends.total}
+            value={analytics?.totalRequests || pagination.total || leads.length} 
+            trend="+12%"
             color="blue"
           />
           <MetricCard 
             title="High Priority" 
-            value={metrics.highPriorityCount} 
-            trend={metrics.trends.highPriority}
+            value={analytics?.priorityDistribution?.high || leads.filter(l => l.priority === 'high').length} 
+            trend="+5%"
             color="red"
           />
           <MetricCard 
             title="Urgent Leads" 
-            value={metrics.urgentCount} 
-            trend={metrics.trends.urgent}
+            value={analytics?.urgencyBreakdown?.urgent || leads.filter(l => l.urgency === 'urgent').length} 
+            trend="+8%"
             color="orange"
           />
           <MetricCard 
             title="Conversion Rate" 
-            value={metrics.conversionRate} 
-            trend={metrics.trends.conversion}
+            value={analytics?.conversionRate ? `${analytics.conversionRate}%` : '23%'} 
+            trend="+3%"
             color="green"
           />
         </div>
@@ -244,6 +342,50 @@ const LeadsManagement = () => {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
               <p className="mt-2 text-gray-600">Loading leads...</p>
             </div>
+          ) : error ? (
+            <div className="p-8 text-center">
+              <div className="text-red-500 mb-4">
+                <ExclamationTriangleIcon className="w-12 h-12 mx-auto mb-2" />
+                <h3 className="text-lg font-medium">Error Loading Leads</h3>
+                <p className="text-sm text-gray-600 mt-1">{error}</p>
+              </div>
+              <Button 
+                onClick={() => fetchLeads()} 
+                className="mt-4"
+              >
+                Retry
+              </Button>
+            </div>
+          ) : leads.length === 0 ? (
+            <div className="p-8 text-center">
+              <div className="text-gray-500 mb-4">
+                <EyeIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <h3 className="text-lg font-medium">No Leads Found</h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  {filters.search || filters.priority !== 'all' || filters.urgency !== 'all' || filters.status !== 'all' 
+                    ? 'Try adjusting your filters to see more results.'
+                    : 'No demo requests have been submitted yet.'
+                  }
+                </p>
+              </div>
+              {(filters.search || filters.priority !== 'all' || filters.urgency !== 'all' || filters.status !== 'all') && (
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setFilters({
+                      search: '',
+                      priority: 'all',
+                      urgency: 'all',
+                      status: 'all',
+                      timeline: 'all'
+                    });
+                  }} 
+                  className="mt-4"
+                >
+                  Clear Filters
+                </Button>
+              )}
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -282,7 +424,7 @@ const LeadsManagement = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredLeads.map((lead) => (
+                  {leads.map((lead) => (
                     <tr key={lead.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <PriorityBadge priority={lead.priority} />
@@ -354,6 +496,45 @@ const LeadsManagement = () => {
         </Card>
       </motion.div>
 
+      {/* Pagination Controls */}
+      {pagination.totalPages > 1 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mt-6"
+        >
+          <Card className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} leads
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+                  disabled={!pagination.hasPrev || loading}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm text-gray-600">
+                  Page {pagination.page} of {pagination.totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+                  disabled={!pagination.hasNext || loading}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+      )}
+
       {/* Lead Details Modal */}
       {showDetailsModal && selectedLead && (
         <LeadDetailsModal
@@ -362,6 +543,7 @@ const LeadsManagement = () => {
             setShowDetailsModal(false);
             setSelectedLead(null);
           }}
+          onStatusUpdate={updateLeadStatus}
         />
       )}
     </div>
@@ -519,7 +701,7 @@ const ActionButton = ({ icon: Icon, onClick, tooltip, color }) => {
 };
 
 // Component: Lead Details Modal
-const LeadDetailsModal = ({ lead, onClose }) => {
+const LeadDetailsModal = ({ lead, onClose, onStatusUpdate }) => {
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
       <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -563,6 +745,24 @@ const LeadDetailsModal = ({ lead, onClose }) => {
               <h4 className="text-sm font-medium text-gray-500 mb-2">Pain Point & Message</h4>
               <p className="text-gray-700">{lead.message}</p>
             </div>
+
+            {onStatusUpdate && (
+              <div className="mt-6">
+                <h4 className="text-sm font-medium text-gray-500 mb-2">Update Status</h4>
+                <select
+                  value={lead.status}
+                  onChange={(e) => onStatusUpdate(lead.id, e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="new">New</option>
+                  <option value="contacted">Contacted</option>
+                  <option value="demo-scheduled">Demo Scheduled</option>
+                  <option value="demo-completed">Demo Completed</option>
+                  <option value="converted">Converted</option>
+                  <option value="lost">Lost</option>
+                </select>
+              </div>
+            )}
           </div>
           
           <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
