@@ -395,7 +395,7 @@ const LeadsManagement = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {lead.company}
+                        {lead.company || 'Not specified'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <UrgencyBadge urgency={lead.urgency} />
@@ -404,10 +404,10 @@ const LeadsManagement = () => {
                         <LeadScoreBar score={lead.leadScore} />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {lead.currentPain.replace(/-/g, ' ').replace(/^\w/, c => c.toUpperCase())}
+                        {lead.currentPain ? lead.currentPain.replace(/-/g, ' ').replace(/^\w/, c => c.toUpperCase()) : 'Not specified'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {lead.budget.replace(/-/g, ' ').toUpperCase()}
+                        {lead.budget ? lead.budget.replace(/-/g, ' ').toUpperCase() : 'Not specified'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <FollowUpDate date={lead.followUpDate} />
