@@ -13,6 +13,7 @@ import { Card, Button } from '../../components/common';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
+import { runCORSTests } from '../../utils/corsTest';
 
 const LeadsManagement = () => {
   const { user } = useAuth();
@@ -231,8 +232,22 @@ const LeadsManagement = () => {
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
       >
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Leads Management</h1>
-        <p className="text-gray-600 mb-6">Manage and track demo requests with intelligent lead scoring</p>
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Leads Management</h1>
+            <p className="text-gray-600">Manage and track demo requests with intelligent lead scoring</p>
+          </div>
+          {process.env.NODE_ENV === 'development' && (
+            <Button
+              onClick={runCORSTests}
+              variant="outline"
+              size="sm"
+              className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+            >
+              Test CORS
+            </Button>
+          )}
+        </div>
 
         {/* Metrics Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

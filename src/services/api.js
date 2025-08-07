@@ -32,6 +32,7 @@ api.interceptors.request.use(
     }
     
     // Add organization context for multi-tenant data isolation
+    // Backend CORS fix is deployed and working for actual requests
     if (currentOrganization) {
       const orgData = JSON.parse(currentOrganization);
       config.headers['X-Organization-ID'] = orgData._id || orgData.id;
