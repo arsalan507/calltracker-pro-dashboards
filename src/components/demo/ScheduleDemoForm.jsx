@@ -35,17 +35,19 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
   ];
 
   const budgetOptions = [
-    { value: '1k-5k', label: '$1,000 - $5,000/month' },
-    { value: '5k-25k', label: '$5,000 - $25,000/month' },
-    { value: '25k-100k', label: '$25,000 - $100,000/month' },
-    { value: '100k+', label: '$100,000+/month' }
+    { value: 'under-1k', label: 'Under $1,000' },
+    { value: '1k-5k', label: '$1,000 - $5,000' },
+    { value: '5k-10k', label: '$5,000 - $10,000' },
+    { value: '10k-plus', label: '$10,000+' },
+    { value: 'not-sure', label: 'Not sure yet' }
   ];
 
   const timelineOptions = [
-    { value: 'asap', label: 'ASAP - This week' },
-    { value: 'next-week', label: 'Next week' },
+    { value: 'this-week', label: 'This week' },
+    { value: 'this-month', label: 'This month' },
     { value: 'next-month', label: 'Next month' },
-    { value: 'flexible', label: 'Flexible timeline' }
+    { value: 'next-quarter', label: 'Next quarter' },
+    { value: 'flexible', label: 'Flexible' }
   ];
 
   const handleInputChange = (field, value) => {
@@ -64,14 +66,31 @@ const ScheduleDemoForm = ({ isOpen, onClose }) => {
       
       console.log('📝 Submitting demo request:', formData);
 
+      // Validate form data against backend expectations
+      const validUrgencies = ['urgent', 'planned', 'exploring'];
+      const validBudgets = ['under-1k', '1k-5k', '5k-10k', '10k-plus', 'not-sure'];
+      const validTimelines = ['this-week', 'this-month', 'next-month', 'next-quarter', 'flexible'];
+
+      if (!validUrgencies.includes(formData.urgency)) {
+        throw new Error('Invalid urgency value');
+      }
+
+      if (formData.budget && !validBudgets.includes(formData.budget)) {
+        throw new Error('Invalid budget value');
+      }
+
+      if (formData.timeline && !validTimelines.includes(formData.timeline)) {
+        throw new Error('Invalid timeline value');
+      }
+
       const demoData = {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
         company: formData.company,
         urgency: formData.urgency, // 'urgent', 'planned', 'exploring'
-        timeline: formData.timeline, // 'asap', 'next-week', 'next-month', 'flexible'
-        budget: formData.budget, // '1k-5k', '5k-25k', '25k-100k', '100k+'
+        timeline: formData.timeline, // 'this-week', 'this-month', 'next-month', 'next-quarter', 'flexible'
+        budget: formData.budget, // 'under-1k', '1k-5k', '5k-10k', '10k-plus', 'not-sure'
         currentPain: formData.currentPain, // Pain point selection
         message: formData.message
       };
