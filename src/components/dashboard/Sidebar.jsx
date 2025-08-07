@@ -12,7 +12,8 @@ import {
   TicketIcon,
   PhoneIcon,
   Squares2X2Icon,
-  BellIcon
+  BellIcon,
+  UserGroupIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../common';
@@ -82,6 +83,12 @@ const Sidebar = ({ open, setOpen }) => {
             href: '/dashboard/admin/users', 
             icon: UsersIcon,
             show: isSuperAdmin() || userRole === 'org_admin'
+          },
+          { 
+            name: 'Leads Management', 
+            href: '/dashboard/admin/leads', 
+            icon: UserGroupIcon,
+            show: isSuperAdmin()
           },
           { 
             name: 'System Analytics', 

@@ -12,6 +12,7 @@ import Organizations from '../pages/Admin/Organizations';
 import Users from '../pages/Admin/Users';
 import Analytics from '../pages/Admin/Analytics';
 import Settings from '../pages/Admin/Settings';
+import LeadsManagement from '../pages/SuperAdmin/LeadsManagement';
 
 // CRM Pages (Role-based access)
 import TicketList from '../pages/CRM/TicketList';
@@ -116,6 +117,7 @@ const DashboardRoutes = () => {
                 <Route path="overview" element={<Overview />} />
                 <Route path="organizations" element={<Organizations />} />
                 <Route path="users" element={<Users />} />
+                <Route path="leads" element={<LeadsManagement />} />
                 <Route path="analytics" element={<Analytics />} />
                 <Route path="settings" element={<Settings />} />
               </Routes>
