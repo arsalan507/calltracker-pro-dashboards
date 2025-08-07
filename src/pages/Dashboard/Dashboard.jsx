@@ -52,8 +52,16 @@ const Dashboard = () => {
       if (userRole === 'org_admin' && user?.organizationId) {
         try {
           const apiClient = createRoleBasedApiClient(user);
-          const orgResponse = await apiClient.getOrganization(user.organizationId);
-          setOrganizationInfo(orgResponse?.data);
+          if (apiClient.getOrganization) {
+            const orgResponse = await apiClient.getOrganization(user.organizationId);
+            setOrganizationInfo(orgResponse?.data);
+          } else {
+            console.warn('getOrganization method not available, using fallback organization info');
+            setOrganizationInfo({
+              name: 'Your Organization',
+              _id: user.organizationId
+            });
+          }
         } catch (error) {
           console.warn('Could not fetch organization info:', error);
         }
@@ -127,10 +135,11 @@ const Dashboard = () => {
       }
 
       // Process call data
-      const calls = callsResponse.data || [];
+      const callsData = callsResponse?.data || callsResponse || [];
+      const calls = Array.isArray(callsData) ? callsData : [];
       const today = new Date().toDateString();
       const callsToday = calls.filter(call => 
-        new Date(call.createdAt).toDateString() === today
+        call?.createdAt && new Date(call.createdAt).toDateString() === today
       ).length;
 
       setDashboardData({
