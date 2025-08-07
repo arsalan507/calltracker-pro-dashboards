@@ -32,10 +32,16 @@ api.interceptors.request.use(
     }
     
     // Add organization context for multi-tenant data isolation
-    // Skip X-Organization-ID header for login endpoint to avoid CORS preflight caching issues
-    const isLoginEndpoint = config.url?.includes('/auth/login');
+    // Skip X-Organization-ID header for endpoints with CORS preflight caching issues
+    const skipOrgHeaderEndpoints = [
+      '/auth/login',
+      '/call-logs'
+    ];
+    const shouldSkipOrgHeader = skipOrgHeaderEndpoints.some(endpoint => 
+      config.url?.includes(endpoint)
+    );
     
-    if (currentOrganization && !isLoginEndpoint) {
+    if (currentOrganization && !shouldSkipOrgHeader) {
       const orgData = JSON.parse(currentOrganization);
       config.headers['X-Organization-ID'] = orgData._id || orgData.id;
     }

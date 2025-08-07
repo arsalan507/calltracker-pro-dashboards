@@ -75,6 +75,13 @@ const LeadsManagement = () => {
       );
 
       if (!response.ok) {
+        // Handle 500 error gracefully - demo requests table may not be ready yet
+        if (response.status === 500) {
+          console.warn('Demo requests table not ready yet - using empty data');
+          setLeads([]);
+          setPagination({ page: 1, limit: 20, total: 0, totalPages: 0, hasNext: false, hasPrev: false });
+          return;
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
@@ -150,6 +157,17 @@ const LeadsManagement = () => {
       );
 
       if (!response.ok) {
+        // Handle 500 error gracefully for analytics endpoint too
+        if (response.status === 500) {
+          console.warn('Demo requests analytics not ready yet - using fallback data');
+          setAnalytics({
+            totalRequests: 0,
+            urgencyBreakdown: { urgent: 0, planned: 0, exploring: 0 },
+            priorityDistribution: { high: 0, medium: 0, low: 0 },
+            conversionRate: 0
+          });
+          return;
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 

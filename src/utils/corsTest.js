@@ -126,6 +126,46 @@ export const testProtectedEndpointCORS = async (token) => {
   }
 };
 
+// Test call logs endpoint without x-organization-id header
+export const testCallLogsCORS = async (token) => {
+  if (!token) {
+    console.log('⚠️ No token provided for call logs test.');
+    return false;
+  }
+
+  console.log('🔍 Testing call logs endpoint without x-organization-id header...');
+  
+  try {
+    const response = await fetch('https://calltrackerpro-backend.vercel.app/api/call-logs?limit=1000', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+        // Removed x-organization-id to avoid CORS issues
+      }
+    });
+
+    const result = await response.json();
+    console.log('✅ Call Logs Test Result:', result);
+
+    if (result.success || response.status === 401) {
+      console.log('🎉 Call logs endpoint CORS working!');
+      return true;
+    } else {
+      console.log('ℹ️ Call logs response:', result.message);
+      return false;
+    }
+
+  } catch (error) {
+    if (error.message.includes('CORS')) {
+      console.log('❌ CORS still blocked for call logs:', error);
+    } else {
+      console.log('✅ CORS working for call logs, other error:', error);
+    }
+    return false;
+  }
+};
+
 // Run comprehensive CORS tests
 export const runCORSTests = async () => {
   console.log('🚀 Starting CORS Tests...');
@@ -139,12 +179,16 @@ export const runCORSTests = async () => {
   const loginTest = await testBackendCORS();
   console.log('');
   
-  // If login successful, test protected endpoint with organization header
+  // If login successful, test other endpoints
   let protectedTest = false;
+  let callLogsTest = false;
   if (loginTest) {
-    console.log('🔍 Login successful, testing protected endpoints...');
+    console.log('🔍 Login successful, testing other endpoints...');
     // Note: In real app, we'd get the token from loginTest result
     protectedTest = await testProtectedEndpointCORS('dummy-token-for-test');
+    console.log('');
+    
+    callLogsTest = await testCallLogsCORS('dummy-token-for-test');
     console.log('');
   }
   
@@ -155,13 +199,16 @@ export const runCORSTests = async () => {
     if (protectedTest) {
       console.log('✅ Protected endpoints working (x-organization-id accepted)');
     }
+    if (callLogsTest) {
+      console.log('✅ Call logs endpoint working (no x-organization-id needed)');
+    }
     console.log('✅ You can now use the real API endpoints');
   } else {
     console.log('⚠️ CORS Tests: May need to wait for OPTIONS cache to clear (up to 24 hours)');
     console.log('💡 Try refreshing the page or using an incognito window');
   }
   
-  return { demoTest, loginTest, protectedTest };
+  return { demoTest, loginTest, protectedTest, callLogsTest };
 };
 
 // Export for use in dev console
@@ -170,4 +217,5 @@ if (typeof window !== 'undefined') {
   window.testLogin = testBackendCORS;
   window.testDemo = testDemoRequestsCORS;
   window.testProtected = testProtectedEndpointCORS;
+  window.testCallLogs = testCallLogsCORS;
 }
