@@ -38,16 +38,36 @@ const OrganizationUsers = () => {
         return;
       }
       
+      console.log('👥 Fetching users for organization:', user.organizationId);
+      console.log('👥 User role:', user.role);
+      console.log('👥 Auth token exists:', !!localStorage.getItem('authToken'));
+      
       // Use role-based API client
       const apiClient = createRoleBasedApiClient(user);
       const response = await apiClient.getOrganizationUsers(user.organizationId);
       
       const usersData = response?.data || [];
+      console.log('👥 Fetched users data:', usersData);
       setUsers(usersData);
     } catch (error) {
       console.error('Error fetching users:', error);
-      toast.error('Failed to load users');
-      setUsers([]);
+      
+      // For now, provide fallback data since backend endpoint is not working
+      console.warn('🔄 Using fallback user data due to backend error');
+      const fallbackUsers = [
+        {
+          _id: 'mock-user-1',
+          firstName: user.firstName || 'Anas',
+          lastName: user.lastName || 'User',
+          email: user.email,
+          role: user.role,
+          isActive: true,
+          createdAt: new Date().toISOString()
+        }
+      ];
+      setUsers(fallbackUsers);
+      
+      toast.error(`Failed to load users from backend. Backend error: ${error.message}. Showing current user as fallback.`);
     } finally {
       setLoading(false);
     }

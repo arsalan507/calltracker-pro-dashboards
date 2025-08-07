@@ -52,11 +52,15 @@ const OrganizationSettings = () => {
         return;
       }
 
+      console.log('🏢 Fetching organization data for:', user.organizationId);
+      console.log('🏢 User role:', user.role);
+
       // Use role-based API client to get organization details
       const apiClient = createRoleBasedApiClient(user);
       const response = await apiClient.getOrganization(user.organizationId);
       
       const orgData = response?.data;
+      console.log('🏢 Fetched organization data:', orgData);
       setOrganization(orgData);
       
       // Update settings with organization data if available
@@ -68,11 +72,25 @@ const OrganizationSettings = () => {
       }
     } catch (error) {
       console.error('Error fetching organization:', error);
-      toast.error('Failed to load organization settings');
+      
+      // Provide fallback organization data
+      console.warn('🔄 Using fallback organization data due to backend error');
+      const fallbackOrganization = {
+        _id: user.organizationId,
+        name: 'Your Organization',
+        domain: 'organization.com',
+        subscriptionPlan: 'basic',
+        subscriptionStatus: 'active',
+        createdAt: new Date().toISOString(),
+        settings: settings
+      };
+      setOrganization(fallbackOrganization);
+      
+      toast.error(`Failed to load organization data from backend. Backend error: ${error.message}. Using fallback data.`);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, settings]);
 
   useEffect(() => {
     if (user) {

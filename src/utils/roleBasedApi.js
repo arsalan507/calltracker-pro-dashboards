@@ -113,6 +113,8 @@ export const createRoleBasedApiClient = (user) => {
     const finalOptions = { ...defaultOptions, ...options };
     
     console.log(`🔐 API Request [${role}]:`, url);
+    console.log(`🔐 Request headers:`, finalOptions.headers);
+    console.log(`🔐 Token preview:`, authToken ? `${authToken.substring(0, 20)}...` : 'None');
     
     const response = await fetch(url, finalOptions);
     
@@ -252,6 +254,17 @@ export const createRoleBasedApiClient = (user) => {
         });
       } else {
         throw new Error('Access denied. Only super admins can delete organizations.');
+      }
+    },
+
+    // Get single organization
+    getOrganization: (orgId) => {
+      if (role === 'super_admin') {
+        return makeRequest(`/api/super-admin/organizations/${orgId}`);
+      } else if (['org_admin', 'manager'].includes(role) && orgId === organizationId) {
+        return makeRequest(`/api/organizations/${organizationId}`);
+      } else {
+        throw new Error('Access denied. You can only access your own organization.');
       }
     }
   };
