@@ -34,7 +34,8 @@ class RealTimeService {
       // Close existing connection
       this.closeSSE();
 
-      const baseUrl = getCurrentApiUrl().replace('/api', ''); // Remove /api for SSE endpoint
+      // Use primary URL only for SSE to avoid SSL certificate issues with fallbacks
+      const baseUrl = 'https://calltrackerpro-backend.vercel.app';
       let sseUrl = `${baseUrl}/tickets/stream?organization_id=${organizationId}`;
       
       if (teamId) {

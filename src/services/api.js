@@ -1,10 +1,11 @@
 import axios from 'axios';
 
-// Primary API endpoint with fallbacks as per your specs
+// Primary API endpoint - fallbacks disabled due to SSL certificate issues
 const PRIMARY_API_URL = 'https://calltrackerpro-backend.vercel.app/api';
 const FALLBACK_URLS = [
-  'https://76.76.21.21/api',
-  'https://64.29.17.131/api'
+  // Disabled fallbacks due to SSL certificate issues
+  // 'https://76.76.21.21/api',
+  // 'https://64.29.17.131/api'
 ];
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || PRIMARY_API_URL;
@@ -35,7 +36,9 @@ api.interceptors.request.use(
     // Skip X-Organization-ID header for endpoints with CORS preflight caching issues
     const skipOrgHeaderEndpoints = [
       '/auth/login',
-      '/call-logs'
+      '/call-logs',
+      '/tickets',
+      '/notifications'
     ];
     const shouldSkipOrgHeader = skipOrgHeaderEndpoints.some(endpoint => 
       config.url?.includes(endpoint)

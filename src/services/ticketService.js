@@ -19,6 +19,17 @@ class TicketService {
       }
     });
 
+    // Add organization ID as query parameter for CORS compatibility
+    const currentOrganization = localStorage.getItem('currentOrganization');
+    if (currentOrganization) {
+      try {
+        const orgData = JSON.parse(currentOrganization);
+        params.append('organization_id', orgData._id || orgData.id);
+      } catch (e) {
+        console.warn('Could not parse organization data:', e);
+      }
+    }
+
     try {
       const response = await api.get(`/tickets?${params.toString()}`);
       return response;
@@ -152,6 +163,17 @@ class TicketService {
         params.append(key, filters[key]);
       }
     });
+
+    // Add organization ID as query parameter for CORS compatibility
+    const currentOrganization = localStorage.getItem('currentOrganization');
+    if (currentOrganization) {
+      try {
+        const orgData = JSON.parse(currentOrganization);
+        params.append('organization_id', orgData._id || orgData.id);
+      } catch (e) {
+        console.warn('Could not parse organization data:', e);
+      }
+    }
 
     try {
       const response = await api.get(`/tickets/stats?${params.toString()}`);
