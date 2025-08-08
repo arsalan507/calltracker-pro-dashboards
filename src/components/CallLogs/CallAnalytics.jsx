@@ -2,7 +2,6 @@ import React from 'react';
 import { Card } from '../common';
 import {
   PhoneIcon,
-  PhoneArrowUpRightIcon,
   PhoneArrowDownLeftIcon,
   XMarkIcon,
   ClockIcon,

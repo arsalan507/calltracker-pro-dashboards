@@ -605,15 +605,7 @@ const getGreeting = () => {
   return 'Good evening';
 };
 
-const getStatusColor = (status) => {
-  const colors = {
-    open: 'bg-yellow-500',
-    'in-progress': 'bg-blue-500',
-    resolved: 'bg-green-500',
-    closed: 'bg-gray-500'
-  };
-  return colors[status] || 'bg-gray-500';
-};
+// Removed unused getStatusColor function
 
 const getPriorityClass = (priority) => {
   const classes = {

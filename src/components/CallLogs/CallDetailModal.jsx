@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../common';
 import { callLogsApi } from '../../services/callLogsApi';
-import { ticketService } from '../../services/ticketService';
 import toast from 'react-hot-toast';
 import {
   XMarkIcon,
@@ -13,12 +12,7 @@ import {
   StarIcon,
   UserIcon,
   BuildingOfficeIcon,
-  MapPinIcon,
-  TicketIcon,
-  PlayIcon,
-  DocumentTextIcon,
-  CalendarIcon,
-  TagIcon
+  TicketIcon
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 

@@ -229,16 +229,7 @@ class TicketService {
     }
   }
 
-  // Create new ticket
-  async createTicket(ticketData) {
-    try {
-      const response = await api.post('/tickets', ticketData);
-      return response;
-    } catch (error) {
-      console.error('Error creating ticket:', error);
-      throw new Error(error.message || 'Failed to create ticket');
-    }
-  }
+  // Legacy createTicket method removed - using CallTrackerPro version above
 
   // Update existing ticket
   async updateTicket(ticketId, updateData) {
@@ -284,16 +275,7 @@ class TicketService {
     }
   }
 
-  // Add note to ticket
-  async addTicketNote(ticketId, noteData) {
-    try {
-      const response = await api.post(`/tickets/${ticketId}/notes`, noteData);
-      return response;
-    } catch (error) {
-      console.error('Error adding ticket note:', error);
-      throw new Error(error.message || 'Failed to add ticket note');
-    }
-  }
+  // Legacy addTicketNote method removed - using CallTrackerPro version above
 
   // Get ticket statistics
   async getTicketStats(filters = {}) {
