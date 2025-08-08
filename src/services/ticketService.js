@@ -1,15 +1,30 @@
 import api from './api';
 
 class TicketService {
-  // Get all tickets with advanced filtering and pagination per your schema
+  // Get all tickets with CallTrackerPro format and advanced filtering
   async getTickets(filters = {}) {
     const params = new URLSearchParams();
     
-    // Add all possible filters from your comprehensive schema
+    // Add all CallTrackerPro filters
     const allowedFilters = [
-      'organizationId', 'teamId', 'assignedTo', 'status', 'category', 'priority',
-      'slaStatus', 'leadStatus', 'stage', 'callType', 'leadSource', 'interestLevel',
-      'page', 'limit', 'sortBy', 'sortOrder', 'search', 'dateFrom', 'dateTo'
+      // Organization & team context (required for multi-tenant)
+      'organizationId', 'teamId',
+      
+      // Core ticket fields
+      'assignedTo', 'status', 'category', 'priority',
+      
+      // CallTrackerPro specific filters
+      'slaStatus', 'leadStatus', 'stage', 'callType', 'leadSource', 
+      'interestLevel', 'budgetRange',
+      
+      // Contact filters  
+      'contactName', 'phoneNumber', 'company',
+      
+      // Pagination & sorting
+      'page', 'limit', 'offset', 'sortBy', 'sortOrder',
+      
+      // Search & date filters
+      'search', 'dateFrom', 'dateTo'
     ];
     
     Object.keys(filters).forEach(key => {
@@ -19,23 +34,149 @@ class TicketService {
       }
     });
 
-    // Add organization ID as query parameter for CORS compatibility
-    const currentOrganization = localStorage.getItem('currentOrganization');
-    if (currentOrganization) {
-      try {
-        const orgData = JSON.parse(currentOrganization);
-        params.append('organization_id', orgData._id || orgData.id);
-      } catch (e) {
-        console.warn('Could not parse organization data:', e);
-      }
+    // Ensure organization context for multi-tenant isolation
+    const currentUser = this.getCurrentUser();
+    if (currentUser?.organizationId && !params.has('organizationId')) {
+      params.append('organizationId', currentUser.organizationId);
     }
 
     try {
+      console.log('📞 Fetching CallTrackerPro tickets with params:', params.toString());
       const response = await api.get(`/tickets?${params.toString()}`);
-      return response;
+      
+      // Handle CallTrackerPro response format
+      return {
+        success: true,
+        data: response.data?.data || response.data || [],
+        total: response.data?.total || response.data?.length || 0,
+        page: response.data?.page || 1,
+        limit: response.data?.limit || 20
+      };
     } catch (error) {
-      console.error('Error fetching tickets:', error);
+      console.error('Error fetching CallTrackerPro tickets:', error);
       throw new Error(error.message || 'Failed to fetch tickets');
+    }
+  }
+
+  // Get single ticket by ID with full CallTrackerPro details
+  async getTicketById(ticketId) {
+    try {
+      console.log('🎫 Fetching CallTrackerPro ticket details for ID:', ticketId);
+      const response = await api.get(`/tickets/${ticketId}`);
+      
+      const ticket = response.data?.data || response.data;
+      if (!ticket) {
+        throw new Error('Ticket not found');
+      }
+
+      // Ensure backward compatibility by mapping fields
+      const mappedTicket = {
+        ...ticket,
+        // Map CallTrackerPro format to legacy fields for backward compatibility
+        customerName: ticket.contactName,
+        customerEmail: ticket.email,
+        customerPhone: ticket.phoneNumber,
+        assignedToName: ticket.assignedToName || 'Assigned User',
+        isOverdue: ticket.slaStatus === 'breached'
+      };
+
+      console.log('🎫 CallTrackerPro ticket loaded:', mappedTicket);
+      return { success: true, data: mappedTicket };
+    } catch (error) {
+      console.error('Error fetching CallTrackerPro ticket:', error);
+      throw new Error(error.message || 'Failed to fetch ticket details');
+    }
+  }
+
+  // Create ticket with CallTrackerPro format
+  async createTicket(ticketData) {
+    try {
+      const currentUser = this.getCurrentUser();
+      
+      // Map frontend form data to CallTrackerPro format
+      const payload = {
+        // Contact Information (CallTrackerPro format)
+        contactName: ticketData.customerName || ticketData.contactName,
+        phoneNumber: ticketData.phoneNumber,
+        company: ticketData.company,
+        email: ticketData.email || ticketData.customerEmail,
+        jobTitle: ticketData.jobTitle,
+        location: ticketData.location,
+
+        // Core ticket fields
+        status: ticketData.status || 'open',
+        priority: ticketData.priority || 'medium',
+        category: ticketData.category || 'sales',
+
+        // CRM Pipeline fields
+        leadSource: ticketData.leadSource || 'web',
+        leadStatus: ticketData.leadStatus || 'new',
+        stage: ticketData.stage || 'contacted',
+        interestLevel: ticketData.interestLevel || 'warm',
+        budgetRange: ticketData.budgetRange,
+        dealValue: ticketData.dealValue || 0,
+
+        // Assignment
+        assignedTo: ticketData.assignedTo,
+        assignedTeam: ticketData.assignedTeam,
+
+        // Multi-tenant context
+        organizationId: currentUser?.organizationId,
+        teamId: ticketData.teamId || currentUser?.teamId,
+
+        // Additional fields
+        description: ticketData.description,
+        tags: ticketData.tags || [],
+        estimatedHours: ticketData.estimatedHours
+      };
+
+      console.log('🎫 Creating CallTrackerPro ticket:', payload);
+      const response = await api.post('/tickets', payload);
+      
+      return { 
+        success: true, 
+        data: response.data?.data || response.data 
+      };
+    } catch (error) {
+      console.error('Error creating CallTrackerPro ticket:', error);
+      throw new Error(error.message || 'Failed to create ticket');
+    }
+  }
+
+  // Add note to ticket (CallTrackerPro format)
+  async addTicketNote(ticketId, noteData) {
+    try {
+      const currentUser = this.getCurrentUser();
+      
+      const payload = {
+        note: noteData.content || noteData.note,
+        author: currentUser?.id,
+        authorName: currentUser?.fullName || currentUser?.name,
+        noteType: noteData.type || 'agent', // agent/client/system
+        isPrivate: noteData.isPrivate || false
+      };
+
+      console.log('📝 Adding CallTrackerPro note to ticket:', ticketId, payload);
+      const response = await api.post(`/tickets/${ticketId}/notes`, payload);
+      
+      return { 
+        success: true, 
+        data: response.data?.data || response.data 
+      };
+    } catch (error) {
+      console.error('Error adding CallTrackerPro note:', error);
+      throw new Error(error.message || 'Failed to add note');
+    }
+  }
+
+  // Helper method to get current user
+  getCurrentUser() {
+    try {
+      const userData = localStorage.getItem('user');
+      return userData ? JSON.parse(userData) : null;
+    } catch (error) {
+      console.warn('Could not parse user data:', error);
+      return null;
     }
   }
 

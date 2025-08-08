@@ -70,17 +70,49 @@ const Dashboard = () => {
       // Fetch data based on user role
       const promises = [];
 
-      // Ticket statistics - try stats first, fallback to regular tickets
+      // CallTrackerPro ticket statistics with organization context
       let ticketsPromise;
+      const organizationId = user?.organizationId;
+      const teamId = user?.teamId;
+
+      console.log('📊 Fetching dashboard data for organization:', organizationId, 'team:', teamId);
+
+      if (!organizationId) {
+        console.error('❌ No organization ID found for user - dashboard data will be limited');
+        setDashboardData(prev => ({ ...prev, loading: false }));
+        return;
+      }
+
       if (canViewAllTickets()) {
-        ticketsPromise = ticketService.getTicketStats().catch(async (error) => {
-          console.warn('Stats endpoint failed, falling back to regular tickets:', error);
-          // Fallback to regular tickets if stats endpoint fails
-          const ticketsData = await ticketService.getTickets({ limit: 20 });
-          return { fallback: true, data: ticketsData };
+        // Try stats endpoint first, fallback to CallTrackerPro tickets
+        ticketsPromise = ticketService.getTicketStats({ 
+          organizationId, 
+          teamId 
+        }).catch(async (error) => {
+          console.warn('📊 Stats endpoint failed, falling back to CallTrackerPro tickets:', error);
+          
+          // Fallback to regular CallTrackerPro tickets with organization context
+          const ticketsData = await ticketService.getTickets({ 
+            limit: 20,
+            organizationId,
+            teamId
+          });
+          
+          return { 
+            fallback: true, 
+            data: ticketsData.data || [],
+            organizationId,
+            teamId
+          };
         });
       } else {
-        ticketsPromise = ticketService.getMyTickets({ limit: 10 });
+        // Get user's assigned tickets with CallTrackerPro context
+        ticketsPromise = ticketService.getMyTickets({ 
+          limit: 10,
+          organizationId,
+          teamId,
+          assignedTo: user?.id
+        });
       }
 
       promises.push(ticketsPromise);
@@ -103,34 +135,86 @@ const Dashboard = () => {
 
       const [ticketsResponse, callsResponse, notificationsResponse] = await Promise.all(promises);
 
-      // Process ticket data
-      let ticketStats = { total: 0, open: 0, overdue: 0, resolved: 0 };
+      // Process CallTrackerPro ticket data
+      let ticketStats = { 
+        total: 0, 
+        open: 0, 
+        overdue: 0, 
+        resolved: 0,
+        // CallTrackerPro specific stats
+        breached: 0,
+        leads: 0,
+        converted: 0
+      };
       let recentTickets = [];
 
       if (ticketsResponse.fallback) {
-        // Using fallback data from regular tickets endpoint
-        console.log('📊 Using fallback ticket data:', ticketsResponse.data);
-        const tickets = ticketsResponse.data?.data || [];
-        recentTickets = tickets.slice(0, 5);
+        // Using fallback CallTrackerPro tickets data
+        console.log('📊 Using fallback CallTrackerPro ticket data:', ticketsResponse.data);
+        const tickets = ticketsResponse.data || [];
+        
+        // Map CallTrackerPro tickets for dashboard display
+        recentTickets = tickets.slice(0, 5).map(ticket => ({
+          ...ticket,
+          // Ensure backward compatibility
+          customerName: ticket.contactName || ticket.customerName,
+          id: ticket._id || ticket.id,
+          // CallTrackerPro specific mapping
+          isOverdue: ticket.slaStatus === 'breached',
+          hasCallLog: !!ticket.callLogId,
+          dealValue: ticket.dealValue || 0,
+          leadScore: calculateLeadScore(ticket)
+        }));
+
+        // Calculate CallTrackerPro stats
         ticketStats = {
           total: tickets.length,
-          open: tickets.filter(t => ['open', 'new'].includes(t.status)).length,
-          overdue: tickets.filter(t => t.isOverdue).length,
-          resolved: tickets.filter(t => t.status === 'resolved').length
+          open: tickets.filter(t => ['open', 'new', 'contacted'].includes(t.status)).length,
+          overdue: tickets.filter(t => t.slaStatus === 'breached').length,
+          resolved: tickets.filter(t => t.status === 'resolved').length,
+          // CallTrackerPro specific metrics
+          breached: tickets.filter(t => t.slaStatus === 'breached').length,
+          leads: tickets.filter(t => ['sales', 'lead'].includes(t.category)).length,
+          converted: tickets.filter(t => t.leadStatus === 'converted').length
         };
+
+        console.log('📊 CallTrackerPro dashboard stats:', ticketStats);
       } else if (canViewAllTickets() && ticketsResponse.stats) {
-        // Using proper stats endpoint
-        ticketStats = ticketsResponse.stats;
-        recentTickets = ticketsResponse.recentTickets || [];
+        // Using proper CallTrackerPro stats endpoint
+        ticketStats = {
+          ...ticketsResponse.stats,
+          // Ensure CallTrackerPro metrics are included
+          breached: ticketsResponse.stats.breached || 0,
+          leads: ticketsResponse.stats.leads || 0,
+          converted: ticketsResponse.stats.converted || 0
+        };
+        recentTickets = (ticketsResponse.recentTickets || []).map(ticket => ({
+          ...ticket,
+          customerName: ticket.contactName || ticket.customerName,
+          id: ticket._id || ticket.id,
+          isOverdue: ticket.slaStatus === 'breached',
+          hasCallLog: !!ticket.callLogId
+        }));
       } else if (ticketsResponse.data) {
-        // Using user-specific tickets
-        const tickets = ticketsResponse.data;
-        recentTickets = tickets.slice(0, 5);
+        // Using user-specific CallTrackerPro tickets
+        const tickets = Array.isArray(ticketsResponse.data) ? ticketsResponse.data : [ticketsResponse.data];
+        
+        recentTickets = tickets.slice(0, 5).map(ticket => ({
+          ...ticket,
+          customerName: ticket.contactName || ticket.customerName,
+          id: ticket._id || ticket.id,
+          isOverdue: ticket.slaStatus === 'breached',
+          hasCallLog: !!ticket.callLogId
+        }));
+
         ticketStats = {
           total: tickets.length,
-          open: tickets.filter(t => ['open', 'new'].includes(t.status)).length,
-          overdue: tickets.filter(t => t.isOverdue).length,
-          resolved: tickets.filter(t => t.status === 'resolved').length
+          open: tickets.filter(t => ['open', 'new', 'contacted'].includes(t.status)).length,
+          overdue: tickets.filter(t => t.slaStatus === 'breached').length,
+          resolved: tickets.filter(t => t.status === 'resolved').length,
+          breached: tickets.filter(t => t.slaStatus === 'breached').length,
+          leads: tickets.filter(t => ['sales', 'lead'].includes(t.category)).length,
+          converted: tickets.filter(t => t.leadStatus === 'converted').length
         };
       }
 
@@ -147,10 +231,20 @@ const Dashboard = () => {
         calls: {
           today: callsToday,
           total: calls.length,
-          withTickets: calls.filter(call => call.ticketId).length
+          withTickets: calls.filter(call => call.ticketId || call.linkedTicket).length
         },
         notifications: {
           unread: notificationsResponse.count || 0
+        },
+        // CallTrackerPro specific metrics
+        conversion: {
+          rate: ticketStats.total > 0 ? Math.round((ticketStats.converted / ticketStats.total) * 100) : 0,
+          deals: ticketStats.converted
+        },
+        sla: {
+          onTrack: ticketStats.total - ticketStats.breached,
+          breached: ticketStats.breached,
+          percentage: ticketStats.total > 0 ? Math.round(((ticketStats.total - ticketStats.breached) / ticketStats.total) * 100) : 100
         },
         recentTickets,
         recentCalls: calls.slice(0, 5),
@@ -276,13 +370,14 @@ const Dashboard = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
         >
+          {/* Show SLA Breached for CallTrackerPro or Resolved for others */}
           <StatsCard
-            title="Resolved"
-            value={dashboardData.tickets.resolved}
-            icon={CheckCircleIcon}
-            color="success"
-            change={canViewAnalytics() ? "+15%" : null}
-            trend="up"
+            title={dashboardData.sla?.breached > 0 ? "SLA Breached" : "Resolved"}
+            value={dashboardData.sla?.breached > 0 ? dashboardData.sla.breached : dashboardData.tickets.resolved}
+            icon={dashboardData.sla?.breached > 0 ? ExclamationTriangleIcon : CheckCircleIcon}
+            color={dashboardData.sla?.breached > 0 ? "warning" : "success"}
+            change={canViewAnalytics() ? (dashboardData.sla?.breached > 0 ? "⚠️ Alert" : "+15%") : null}
+            trend={dashboardData.sla?.breached > 0 ? "down" : "up"}
           />
         </motion.div>
       </div>
@@ -406,16 +501,57 @@ const StatsCard = ({ title, value, icon: Icon, color, change, trend }) => {
 const TicketItem = ({ ticket }) => (
   <Link to={`/dashboard/crm/tickets/${ticket.id || ticket._id}`} className="block">
     <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-      <div className={`w-3 h-3 rounded-full ${getStatusColor(ticket.status)}`}></div>
+      {/* SLA Status indicator for CallTrackerPro */}
+      <div className={`w-3 h-3 rounded-full ${getSLAStatusColor(ticket.slaStatus || ticket.status)}`}></div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900 truncate">{ticket.title}</p>
-        <p className="text-sm text-gray-500">{ticket.customerName || ticket.customer?.name}</p>
+        {/* CallTrackerPro ticket display */}
+        <div className="flex items-center space-x-2">
+          <p className="text-sm font-medium text-gray-900 truncate">
+            {ticket.ticketId || ticket.title || `#${ticket.id || ticket._id}`}
+          </p>
+          {ticket.hasCallLog && (
+            <PhoneIcon className="w-3 h-3 text-blue-500" title="Has linked call" />
+          )}
+        </div>
+        <div className="flex items-center space-x-2 text-sm text-gray-500">
+          <span>{ticket.contactName || ticket.customerName || 'Unknown Contact'}</span>
+          {ticket.phoneNumber && (
+            <>
+              <span>•</span>
+              <span>{ticket.phoneNumber}</span>
+            </>
+          )}
+          {ticket.company && (
+            <>
+              <span>•</span>
+              <span>{ticket.company}</span>
+            </>
+          )}
+        </div>
       </div>
       <div className="text-right">
         <p className="text-xs text-gray-500">{formatDate(ticket.createdAt)}</p>
-        <span className={`inline-block px-2 py-1 text-xs rounded-full ${getPriorityClass(ticket.priority)}`}>
-          {ticket.priority}
-        </span>
+        <div className="flex space-x-1 mt-1">
+          {/* CallTrackerPro call type indicator */}
+          {ticket.callType && (
+            <span className={`inline-block px-2 py-1 text-xs rounded-full ${
+              ticket.callType === 'incoming' ? 'bg-green-100 text-green-800' : 
+              ticket.callType === 'outgoing' ? 'bg-blue-100 text-blue-800' :
+              'bg-gray-100 text-gray-800'
+            }`}>
+              {ticket.callType}
+            </span>
+          )}
+          <span className={`inline-block px-2 py-1 text-xs rounded-full ${getPriorityClass(ticket.priority)}`}>
+            {ticket.priority}
+          </span>
+        </div>
+        {/* Deal value for sales tickets */}
+        {ticket.dealValue > 0 && (
+          <p className="text-xs text-green-600 font-semibold mt-1">
+            ${ticket.dealValue.toLocaleString()}
+          </p>
+        )}
       </div>
     </div>
   </Link>
@@ -525,6 +661,58 @@ const getQuickActions = (userRole) => {
   };
 
   return [...baseActions, ...(roleSpecificActions[userRole] || [])];
+};
+
+// CallTrackerPro Helper Functions
+const calculateLeadScore = (ticket) => {
+  let score = 0;
+  
+  // Interest level scoring
+  if (ticket.interestLevel === 'hot') score += 30;
+  else if (ticket.interestLevel === 'warm') score += 20;
+  else if (ticket.interestLevel === 'cold') score += 10;
+  
+  // Deal value scoring
+  if (ticket.dealValue > 50000) score += 25;
+  else if (ticket.dealValue > 10000) score += 15;
+  else if (ticket.dealValue > 1000) score += 10;
+  
+  // Stage scoring
+  if (ticket.stage === 'qualified') score += 20;
+  else if (ticket.stage === 'proposal') score += 25;
+  else if (ticket.stage === 'negotiation') score += 30;
+  
+  // Call activity bonus
+  if (ticket.callLogId) score += 10;
+  
+  // Budget range bonus
+  if (ticket.budgetRange) score += 5;
+  
+  return Math.min(score, 100); // Cap at 100
+};
+
+const getSLAStatusColor = (slaStatus) => {
+  switch (slaStatus) {
+    case 'on_track':
+    case 'on-track':
+      return 'bg-green-500';
+    case 'at_risk':
+    case 'at-risk':
+      return 'bg-yellow-500';
+    case 'breached':
+      return 'bg-red-500';
+    // Fallback to regular status colors
+    case 'open':
+    case 'new':
+      return 'bg-yellow-500';
+    case 'in-progress':
+      return 'bg-blue-500';
+    case 'resolved':
+    case 'closed':
+      return 'bg-green-500';
+    default:
+      return 'bg-gray-500';
+  }
 };
 
 export default Dashboard;
