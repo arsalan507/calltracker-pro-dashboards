@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-// Primary API endpoint - fallbacks disabled due to SSL certificate issues
+// Primary API endpoint - CallTrackerPro backend
 const PRIMARY_API_URL = 'https://calltrackerpro-backend.vercel.app/api';
 const FALLBACK_URLS = [
   // Disabled fallbacks due to SSL certificate issues
