@@ -29,12 +29,6 @@ const CallDetailModal = ({ callLog, isOpen, onClose }) => {
     assignedTo: ''
   });
 
-  useEffect(() => {
-    if (isOpen && callLog && callLog.phoneNumber) {
-      fetchCallHistory();
-    }
-  }, [isOpen, callLog]);
-
   const fetchCallHistory = async () => {
     try {
       setLoading(true);
@@ -51,6 +45,13 @@ const CallDetailModal = ({ callLog, isOpen, onClose }) => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (isOpen && callLog && callLog.phoneNumber) {
+      fetchCallHistory();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, callLog]);
 
   const handleCreateTicket = async () => {
     try {
