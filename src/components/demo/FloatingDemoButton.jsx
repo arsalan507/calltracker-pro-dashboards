@@ -57,7 +57,7 @@ const FloatingDemoButton = ({ position = 'bottom-right' }) => {
               <button
                 onClick={() => {
                   // You can add a direct call feature here
-                  window.open('tel:+1-800-CALLTRACKER', '_self');
+                  window.open('tel:+918660310638', '_self');
                   setIsExpanded(false);
                 }}
                 className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors"
