@@ -11,6 +11,13 @@ const FALLBACK_URLS = [
 // Use environment URL or fallback to primary (NO /api suffix)
 const API_BASE_URL = process.env.REACT_APP_API_URL || PRIMARY_API_URL;
 
+// Debug logging for API configuration
+console.log('🔧 API Configuration:', {
+  REACT_APP_API_URL: process.env.REACT_APP_API_URL,
+  PRIMARY_API_URL: PRIMARY_API_URL,
+  Final_API_BASE_URL: API_BASE_URL
+});
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 15000, // Increased timeout for real-time features
@@ -26,6 +33,13 @@ let fallbackIndex = 0;
 // Request interceptor to add auth token and organization context
 api.interceptors.request.use(
   (config) => {
+    // Debug logging to see what URLs are being constructed
+    console.log('🔧 API Request Debug:', {
+      baseURL: config.baseURL,
+      url: config.url,
+      fullURL: `${config.baseURL}${config.url}`
+    });
+    
     const token = localStorage.getItem('authToken');
     const currentOrganization = localStorage.getItem('currentOrganization');
     
