@@ -42,7 +42,7 @@ class NotificationService {
   // Mark notification as read
   async markAsRead(notificationId) {
     try {
-      const response = await api.put(`/notifications/${notificationId}/read`);
+      const response = await api.put(`/api/notifications/${notificationId}/read`);
       return response;
     } catch (error) {
       console.error('Error marking notification as read:', error);
@@ -53,7 +53,7 @@ class NotificationService {
   // Mark all notifications as read
   async markAllAsRead() {
     try {
-      const response = await api.put('/notifications/mark-all-read');
+      const response = await api.put('/api/notifications/mark-all-read');
       return response;
     } catch (error) {
       console.error('Error marking all notifications as read:', error);

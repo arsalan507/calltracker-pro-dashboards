@@ -38,13 +38,6 @@ let fallbackIndex = 0;
 // Request interceptor to add auth token and organization context
 api.interceptors.request.use(
   (config) => {
-    // Debug logging to see what URLs are being constructed
-    console.log('🔧 API Request Debug:', {
-      baseURL: config.baseURL,
-      url: config.url,
-      fullURL: `${config.baseURL}${config.url}`
-    });
-    
     const token = localStorage.getItem('authToken');
     const currentOrganization = localStorage.getItem('currentOrganization');
     

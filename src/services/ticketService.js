@@ -42,7 +42,7 @@ class TicketService {
 
     try {
       console.log('📞 Fetching CallTrackerPro tickets with params:', params.toString());
-      const response = await api.get(`/tickets?${params.toString()}`);
+      const response = await api.get(`/api/tickets?${params.toString()}`);
       
       // Handle CallTrackerPro response format
       return {
@@ -62,7 +62,7 @@ class TicketService {
   async getTicketById(ticketId) {
     try {
       console.log('🎫 Fetching CallTrackerPro ticket details for ID:', ticketId);
-      const response = await api.get(`/tickets/${ticketId}`);
+      const response = await api.get(`/api/tickets/${ticketId}`);
       
       const ticket = response.data?.data || response.data;
       if (!ticket) {
@@ -131,7 +131,7 @@ class TicketService {
       };
 
       console.log('🎫 Creating CallTrackerPro ticket:', payload);
-      const response = await api.post('/tickets', payload);
+      const response = await api.post('/api/tickets', payload);
       
       return { 
         success: true, 
@@ -157,7 +157,7 @@ class TicketService {
       };
 
       console.log('📝 Adding CallTrackerPro note to ticket:', ticketId, payload);
-      const response = await api.post(`/tickets/${ticketId}/notes`, payload);
+      const response = await api.post(`/api/tickets/${ticketId}/notes`, payload);
       
       return { 
         success: true, 
@@ -191,7 +191,7 @@ class TicketService {
     });
 
     try {
-      const response = await api.get(`/tickets/my?${params.toString()}`);
+      const response = await api.get(`/api/tickets/my?${params.toString()}`);
       return response;
     } catch (error) {
       console.error('Error fetching my tickets:', error);
@@ -210,7 +210,7 @@ class TicketService {
     });
 
     try {
-      const response = await api.get(`/tickets/overdue?${params.toString()}`);
+      const response = await api.get(`/api/tickets/overdue?${params.toString()}`);
       return response;
     } catch (error) {
       console.error('Error fetching overdue tickets:', error);
@@ -221,7 +221,7 @@ class TicketService {
   // Get single ticket by ID
   async getTicket(ticketId) {
     try {
-      const response = await api.get(`/tickets/${ticketId}`);
+      const response = await api.get(`/api/tickets/${ticketId}`);
       return response;
     } catch (error) {
       console.error('Error fetching ticket:', error);
@@ -234,7 +234,7 @@ class TicketService {
   // Update existing ticket
   async updateTicket(ticketId, updateData) {
     try {
-      const response = await api.put(`/tickets/${ticketId}`, updateData);
+      const response = await api.put(`/api/tickets/${ticketId}`, updateData);
       return response;
     } catch (error) {
       console.error('Error updating ticket:', error);
@@ -245,7 +245,7 @@ class TicketService {
   // Archive (soft delete) ticket
   async archiveTicket(ticketId) {
     try {
-      const response = await api.delete(`/tickets/${ticketId}`);
+      const response = await api.delete(`/api/tickets/${ticketId}`);
       return response;
     } catch (error) {
       console.error('Error archiving ticket:', error);
@@ -256,7 +256,7 @@ class TicketService {
   // Get ticket history/audit trail
   async getTicketHistory(ticketId) {
     try {
-      const response = await api.get(`/tickets/${ticketId}/history`);
+      const response = await api.get(`/api/tickets/${ticketId}/history`);
       return response;
     } catch (error) {
       console.error('Error fetching ticket history:', error);
@@ -267,7 +267,7 @@ class TicketService {
   // Get ticket notes
   async getTicketNotes(ticketId) {
     try {
-      const response = await api.get(`/tickets/${ticketId}/notes`);
+      const response = await api.get(`/api/tickets/${ticketId}/notes`);
       return response;
     } catch (error) {
       console.error('Error fetching ticket notes:', error);
@@ -299,7 +299,7 @@ class TicketService {
     }
 
     try {
-      const response = await api.get(`/tickets/stats?${params.toString()}`);
+      const response = await api.get(`/api/tickets/stats?${params.toString()}`);
       return response;
     } catch (error) {
       console.error('Error fetching ticket stats:', error);
@@ -310,7 +310,7 @@ class TicketService {
   // Bulk operations
   async bulkUpdateTickets(ticketIds, updateData) {
     try {
-      const response = await api.post('/tickets/bulk-update', {
+      const response = await api.post('/api/tickets/bulk-update', {
         ticketIds,
         updateData
       });
@@ -323,7 +323,7 @@ class TicketService {
 
   async bulkArchiveTickets(ticketIds) {
     try {
-      const response = await api.post('/tickets/bulk-archive', {
+      const response = await api.post('/api/tickets/bulk-archive', {
         ticketIds
       });
       return response;
@@ -346,7 +346,7 @@ class TicketService {
     params.append('format', format);
 
     try {
-      const response = await api.get(`/tickets/export?${params.toString()}`, {
+      const response = await api.get(`/api/tickets/export?${params.toString()}`, {
         responseType: 'blob'
       });
       return response;
@@ -359,7 +359,7 @@ class TicketService {
   // Integration with call logs
   async createTicketFromCall(callLogId, ticketData) {
     try {
-      const response = await api.post(`/call-logs/${callLogId}/create-ticket`, ticketData);
+      const response = await api.post(`/api/call-logs/${callLogId}/create-ticket`, ticketData);
       return response;
     } catch (error) {
       console.error('Error creating ticket from call:', error);
@@ -369,7 +369,7 @@ class TicketService {
 
   async linkTicketToCall(callLogId, ticketId) {
     try {
-      const response = await api.put(`/call-logs/${callLogId}/link-ticket`, {
+      const response = await api.put(`/api/call-logs/${callLogId}/link-ticket`, {
         ticketId
       });
       return response;
@@ -381,7 +381,7 @@ class TicketService {
 
   async unlinkTicketFromCall(callLogId) {
     try {
-      const response = await api.delete(`/call-logs/${callLogId}/unlink-ticket`);
+      const response = await api.delete(`/api/call-logs/${callLogId}/unlink-ticket`);
       return response;
     } catch (error) {
       console.error('Error unlinking ticket from call:', error);
@@ -400,7 +400,7 @@ class TicketService {
     });
 
     try {
-      const response = await api.get(`/call-logs/without-tickets?${params.toString()}`);
+      const response = await api.get(`/api/call-logs/without-tickets?${params.toString()}`);
       return response;
     } catch (error) {
       console.error('Error fetching calls without tickets:', error);
@@ -411,7 +411,7 @@ class TicketService {
   // Get ticket creation analytics from calls
   async getCallTicketStats() {
     try {
-      const response = await api.get('/call-logs/ticket-stats');
+      const response = await api.get('/api/call-logs/ticket-stats');
       return response;
     } catch (error) {
       console.error('Error fetching call ticket stats:', error);
@@ -424,7 +424,7 @@ class TicketService {
   // Assign ticket to user/team
   async assignTicket(ticketId, assignmentData) {
     try {
-      const response = await api.post(`/tickets/${ticketId}/assign`, assignmentData);
+      const response = await api.post(`/api/tickets/${ticketId}/assign`, assignmentData);
       return response;
     } catch (error) {
       console.error('Error assigning ticket:', error);
@@ -435,7 +435,7 @@ class TicketService {
   // Escalate ticket
   async escalateTicket(ticketId, escalationData) {
     try {
-      const response = await api.post(`/tickets/${ticketId}/escalate`, escalationData);
+      const response = await api.post(`/api/tickets/${ticketId}/escalate`, escalationData);
       return response;
     } catch (error) {
       console.error('Error escalating ticket:', error);
@@ -446,7 +446,7 @@ class TicketService {
   // Update ticket status
   async updateTicketStatus(ticketId, status, reason = '') {
     try {
-      const response = await api.put(`/tickets/${ticketId}/status`, { status, reason });
+      const response = await api.put(`/api/tickets/${ticketId}/status`, { status, reason });
       return response;
     } catch (error) {
       console.error('Error updating ticket status:', error);
@@ -457,7 +457,7 @@ class TicketService {
   // Update CRM pipeline stage
   async updatePipelineStage(ticketId, stage, stageData = {}) {
     try {
-      const response = await api.put(`/tickets/${ticketId}/stage`, { stage, ...stageData });
+      const response = await api.put(`/api/tickets/${ticketId}/stage`, { stage, ...stageData });
       return response;
     } catch (error) {
       console.error('Error updating pipeline stage:', error);
@@ -468,7 +468,7 @@ class TicketService {
   // Submit customer satisfaction rating
   async submitSatisfactionRating(ticketId, ratingData) {
     try {
-      const response = await api.post(`/tickets/${ticketId}/satisfaction`, ratingData);
+      const response = await api.post(`/api/tickets/${ticketId}/satisfaction`, ratingData);
       return response;
     } catch (error) {
       console.error('Error submitting satisfaction rating:', error);
@@ -479,7 +479,7 @@ class TicketService {
   // Schedule follow-up
   async scheduleFollowUp(ticketId, followUpData) {
     try {
-      const response = await api.post(`/tickets/${ticketId}/follow-up`, followUpData);
+      const response = await api.post(`/api/tickets/${ticketId}/follow-up`, followUpData);
       return response;
     } catch (error) {
       console.error('Error scheduling follow-up:', error);
@@ -498,7 +498,7 @@ class TicketService {
     });
 
     try {
-      const response = await api.get(`/tickets/analytics/pipeline?${params.toString()}`);
+      const response = await api.get(`/api/tickets/analytics/pipeline?${params.toString()}`);
       return response;
     } catch (error) {
       console.error('Error fetching pipeline analytics:', error);
@@ -517,7 +517,7 @@ class TicketService {
     });
 
     try {
-      const response = await api.get(`/tickets/analytics/conversion?${params.toString()}`);
+      const response = await api.get(`/api/tickets/analytics/conversion?${params.toString()}`);
       return response;
     } catch (error) {
       console.error('Error fetching conversion analytics:', error);
@@ -536,7 +536,7 @@ class TicketService {
     });
 
     try {
-      const response = await api.get(`/tickets/analytics/sla?${params.toString()}`);
+      const response = await api.get(`/api/tickets/analytics/sla?${params.toString()}`);
       return response;
     } catch (error) {
       console.error('Error fetching SLA analytics:', error);
@@ -547,7 +547,7 @@ class TicketService {
   // Get tickets by lead status for CRM pipeline
   async getTicketsByLeadStatus() {
     try {
-      const response = await api.get('/tickets/by-lead-status');
+      const response = await api.get('/api/tickets/by-lead-status');
       return response;
     } catch (error) {
       console.error('Error fetching tickets by lead status:', error);

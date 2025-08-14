@@ -239,7 +239,7 @@ export const userService = {
 
   async updateUserRole(orgId, userId, roleData) {
     try {
-      const response = await api.put(`/organizations/${orgId}/users/${userId}/role`, roleData);
+      const response = await api.put(`/api/organizations/${orgId}/users/${userId}/role`, roleData);
       return response;
     } catch (error) {
       throw error;
@@ -248,7 +248,7 @@ export const userService = {
 
   async deactivateUser(orgId, userId) {
     try {
-      const response = await api.put(`/organizations/${orgId}/users/${userId}/deactivate`);
+      const response = await api.put(`/api/organizations/${orgId}/users/${userId}/deactivate`);
       return response;
     } catch (error) {
       throw error;
@@ -305,7 +305,7 @@ export const userService = {
 
   async getUserAnalytics(userId) {
     try {
-      const response = await api.get(`/users/${userId}/analytics`);
+      const response = await api.get(`/api/users/${userId}/analytics`);
       return response;
     } catch (error) {
       throw error;
@@ -314,7 +314,7 @@ export const userService = {
 
   async getUserActivity(userId) {
     try {
-      const response = await api.get(`/users/${userId}/activity`);
+      const response = await api.get(`/api/users/${userId}/activity`);
       return response;
     } catch (error) {
       throw error;

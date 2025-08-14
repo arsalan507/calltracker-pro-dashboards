@@ -44,7 +44,7 @@ class CallLogsApi {
 
     try {
       console.log('📞 Fetching call logs with params:', params.toString());
-      const response = await api.get(`/call-logs?${params.toString()}`);
+      const response = await api.get(`/api/call-logs?${params.toString()}`);
       
       return {
         success: true,
@@ -81,7 +81,7 @@ class CallLogsApi {
 
     try {
       console.log('📊 Fetching call analytics with params:', params.toString());
-      const response = await api.get(`/call-logs/analytics/stats?${params.toString()}`);
+      const response = await api.get(`/api/call-logs/analytics/stats?${params.toString()}`);
       
       return {
         success: true,
@@ -100,7 +100,7 @@ class CallLogsApi {
       if (organizationId) params.append('organizationId', organizationId);
       
       console.log('📞 Fetching call history for:', phoneNumber);
-      const response = await api.get(`/call-logs/history/${encodeURIComponent(phoneNumber)}?${params.toString()}`);
+      const response = await api.get(`/api/call-logs/history/${encodeURIComponent(phoneNumber)}?${params.toString()}`);
       
       return {
         success: true,
@@ -116,7 +116,7 @@ class CallLogsApi {
   async getCallLogById(callLogId) {
     try {
       console.log('📞 Fetching call log details for ID:', callLogId);
-      const response = await api.get(`/call-logs/${callLogId}`);
+      const response = await api.get(`/api/call-logs/${callLogId}`);
       
       const callLog = response.data?.data || response.data;
       if (!callLog) {
@@ -164,7 +164,7 @@ class CallLogsApi {
       };
 
       console.log('📞 Creating call log:', payload);
-      const response = await api.post('/call-logs', payload);
+      const response = await api.post('/api/call-logs', payload);
       
       return { 
         success: true, 
@@ -180,7 +180,7 @@ class CallLogsApi {
   async updateCallLog(callLogId, updateData) {
     try {
       console.log('📞 Updating call log:', callLogId, updateData);
-      const response = await api.put(`/call-logs/${callLogId}`, updateData);
+      const response = await api.put(`/api/call-logs/${callLogId}`, updateData);
       
       return { 
         success: true, 
@@ -196,7 +196,7 @@ class CallLogsApi {
   async linkToTicket(callLogId, ticketId) {
     try {
       console.log('📞 Linking call log to ticket:', callLogId, ticketId);
-      const response = await api.put(`/call-logs/${callLogId}/link-ticket`, { ticketId });
+      const response = await api.put(`/api/call-logs/${callLogId}/link-ticket`, { ticketId });
       
       return { 
         success: true, 
@@ -212,7 +212,7 @@ class CallLogsApi {
   async createTicketFromCall(callLogId, ticketData) {
     try {
       console.log('📞 Creating ticket from call log:', callLogId, ticketData);
-      const response = await api.post(`/call-logs/${callLogId}/create-ticket`, ticketData);
+      const response = await api.post(`/api/call-logs/${callLogId}/create-ticket`, ticketData);
       
       return { 
         success: true, 
@@ -244,7 +244,7 @@ class CallLogsApi {
 
     try {
       console.log('📞 Exporting call logs with format:', format);
-      const response = await api.get(`/call-logs/export?${params.toString()}`, {
+      const response = await api.get(`/api/call-logs/export?${params.toString()}`, {
         responseType: 'blob'
       });
       
@@ -268,7 +268,7 @@ class CallLogsApi {
     if (teamId) params.append('teamId', teamId);
 
     try {
-      const response = await api.get(`/call-logs/analytics/team-stats?${params.toString()}`);
+      const response = await api.get(`/api/call-logs/analytics/team-stats?${params.toString()}`);
       
       return {
         success: true,
@@ -297,7 +297,7 @@ class CallLogsApi {
     }
 
     try {
-      const response = await api.get(`/call-logs/analytics/quality?${params.toString()}`);
+      const response = await api.get(`/api/call-logs/analytics/quality?${params.toString()}`);
       
       return {
         success: true,
@@ -331,7 +331,7 @@ class CallLogsApi {
     }
 
     try {
-      const eventSource = new EventSource(`${api.defaults.baseURL}/call-logs/stream?organizationId=${orgId}`);
+      const eventSource = new EventSource(`${api.defaults.baseURL}/api/call-logs/stream?organizationId=${orgId}`);
       console.log('📞 Connected to call logs real-time stream for organization:', orgId);
       return eventSource;
     } catch (error) {

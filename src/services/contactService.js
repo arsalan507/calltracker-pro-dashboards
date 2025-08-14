@@ -3,7 +3,7 @@ import api from './api';
 export const contactService = {
   async getContacts(params = {}) {
     try {
-      const response = await api.get('/contacts', { params });
+      const response = await api.get('/api/contacts', { params });
       return response;
     } catch (error) {
       throw error;
@@ -12,7 +12,7 @@ export const contactService = {
 
   async createContact(contactData) {
     try {
-      const response = await api.post('/contacts', contactData);
+      const response = await api.post('/api/contacts', contactData);
       return response;
     } catch (error) {
       throw error;
@@ -21,7 +21,7 @@ export const contactService = {
 
   async getContact(contactId) {
     try {
-      const response = await api.get(`/contacts/${contactId}`);
+      const response = await api.get(`/api/contacts/${contactId}`);
       return response;
     } catch (error) {
       throw error;
@@ -30,7 +30,7 @@ export const contactService = {
 
   async updateContact(contactId, contactData) {
     try {
-      const response = await api.put(`/contacts/${contactId}`, contactData);
+      const response = await api.put(`/api/contacts/${contactId}`, contactData);
       return response;
     } catch (error) {
       throw error;
@@ -39,7 +39,7 @@ export const contactService = {
 
   async deleteContact(contactId) {
     try {
-      const response = await api.delete(`/contacts/${contactId}`);
+      const response = await api.delete(`/api/contacts/${contactId}`);
       return response;
     } catch (error) {
       throw error;
