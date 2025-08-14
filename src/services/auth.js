@@ -8,7 +8,7 @@ export const authService = {
         hasPassword: !!credentials.password 
       });
       
-      const response = await api.post('/api/auth/login', credentials);
+      const response = await api.post('/auth/login', credentials);
       
       console.log('🔐 Login response received:', {
         success: !!response.success,
@@ -52,7 +52,7 @@ export const authService = {
 
   async logout() {
     try {
-      await api.post('/api/auth/logout');
+      await api.post('/auth/logout');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -63,7 +63,7 @@ export const authService = {
 
   async getCurrentUser() {
     try {
-      const response = await api.get('/api/auth/me');
+      const response = await api.get('/auth/me');
       return response;
     } catch (error) {
       throw error;
@@ -72,7 +72,7 @@ export const authService = {
 
   async refreshToken() {
     try {
-      const response = await api.post('/api/auth/refresh');
+      const response = await api.post('/auth/refresh');
       
       if (response.token) {
         localStorage.setItem('authToken', response.token);

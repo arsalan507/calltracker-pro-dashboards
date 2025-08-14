@@ -8,7 +8,17 @@ const FALLBACK_URLS = [
   // 'https://64.29.17.131/api'
 ];
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || PRIMARY_API_URL;
+// Ensure consistent API URL with /api suffix
+const getApiBaseUrl = () => {
+  const envUrl = process.env.REACT_APP_API_URL;
+  if (envUrl) {
+    // If environment URL doesn't end with /api, add it
+    return envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`;
+  }
+  return PRIMARY_API_URL;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 const api = axios.create({
   baseURL: API_BASE_URL,

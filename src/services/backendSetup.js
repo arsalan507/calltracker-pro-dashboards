@@ -7,9 +7,9 @@ export const backendSetupService = {
   async testBackendHealth() {
     try {
       // First try the new setup endpoint
-      const response = await api.get('/api/setup/test-connection');
+      const response = await api.get('/setup/test-connection');
       console.log('✅ Backend connectivity test successful:', response);
-      return { success: true, data: response, endpoint: '/api/setup/test-connection' };
+      return { success: true, data: response, endpoint: '/setup/test-connection' };
     } catch (error) {
       console.log('❌ New connectivity endpoint failed, trying fallback...');
       try {
@@ -37,7 +37,7 @@ export const backendSetupService = {
       });
       
       // Use the new setup endpoint
-      const response = await api.post('/api/setup/initial-user', {
+      const response = await api.post('/setup/initial-user', {
         email: userData.email,
         password: userData.password,
         firstName: userData.firstName || 'Admin',
@@ -47,7 +47,7 @@ export const backendSetupService = {
       
       if (response.success) {
         console.log('✅ Initial user created successfully:', response);
-        return { success: true, data: response, endpoint: '/api/setup/initial-user' };
+        return { success: true, data: response, endpoint: '/setup/initial-user' };
       } else {
         throw new Error(response.message || 'Failed to create initial user');
       }
