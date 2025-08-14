@@ -9,7 +9,12 @@ const FALLBACK_URLS = [
 ];
 
 // Use environment URL or fallback to primary (NO /api suffix)
-const API_BASE_URL = process.env.REACT_APP_API_URL || PRIMARY_API_URL;
+// Strip /api suffix if it exists in environment variable
+const getCleanApiUrl = () => {
+  const envUrl = process.env.REACT_APP_API_URL || PRIMARY_API_URL;
+  return envUrl.endsWith('/api') ? envUrl.slice(0, -4) : envUrl;
+};
+const API_BASE_URL = getCleanApiUrl();
 
 // Debug logging for API configuration
 console.log('🔧 API Configuration:', {
