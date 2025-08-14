@@ -1,24 +1,15 @@
 import axios from 'axios';
 
-// Primary API endpoint - CallTrackerPro backend
-const PRIMARY_API_URL = 'https://calltrackerpro-backend.vercel.app/api';
+// Primary API endpoint - CallTrackerPro backend (NO /api suffix - added in individual calls)
+const PRIMARY_API_URL = 'https://calltrackerpro-backend.vercel.app';
 const FALLBACK_URLS = [
   // Disabled fallbacks due to SSL certificate issues
-  // 'https://76.76.21.21/api',
-  // 'https://64.29.17.131/api'
+  // 'https://76.76.21.21',
+  // 'https://64.29.17.131'
 ];
 
-// Ensure consistent API URL with /api suffix
-const getApiBaseUrl = () => {
-  const envUrl = process.env.REACT_APP_API_URL;
-  if (envUrl) {
-    // If environment URL doesn't end with /api, add it
-    return envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`;
-  }
-  return PRIMARY_API_URL;
-};
-
-const API_BASE_URL = getApiBaseUrl();
+// Use environment URL or fallback to primary (NO /api suffix)
+const API_BASE_URL = process.env.REACT_APP_API_URL || PRIMARY_API_URL;
 
 const api = axios.create({
   baseURL: API_BASE_URL,

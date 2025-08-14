@@ -1,5 +1,5 @@
 
-const API_BASE_URL = 'https://calltrackerpro-backend.vercel.app/api';
+const API_BASE_URL = 'https://calltrackerpro-backend.vercel.app';
 
 export const demoService = {
   // Submit demo request
@@ -22,7 +22,7 @@ export const demoService = {
 
       console.log('📤 Sending to backend:', backendData);
       
-      const response = await fetch(`${API_BASE_URL}/demo-requests`, {
+      const response = await fetch(`${API_BASE_URL}/api/demo-requests`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -65,7 +65,7 @@ export const demoService = {
       if (filters.page) queryParams.append('page', filters.page);
       if (filters.limit) queryParams.append('limit', filters.limit);
 
-      const url = `${API_BASE_URL}/demo-requests${queryParams.toString() ? 
+      const url = `${API_BASE_URL}/api/demo-requests${queryParams.toString() ? 
         '?' + queryParams.toString() : ''}`;
 
       console.log('📡 Fetching demos from:', url);
@@ -113,7 +113,7 @@ export const demoService = {
     try {
       const token = localStorage.getItem('authToken');
 
-      const response = await fetch(`${API_BASE_URL}/demo-requests/analytics`, {
+      const response = await fetch(`${API_BASE_URL}/api/demo-requests/analytics`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -153,7 +153,7 @@ export const demoService = {
     try {
       const token = localStorage.getItem('authToken');
 
-      const response = await fetch(`${API_BASE_URL}/demo-requests/${demoId}/status`, {
+      const response = await fetch(`${API_BASE_URL}/api/demo-requests/${demoId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

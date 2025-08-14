@@ -7,7 +7,7 @@ export const backendSetupService = {
   async testBackendHealth() {
     try {
       // First try the new setup endpoint
-      const response = await api.get('/setup/test-connection');
+      const response = await api.get('/api/setup/test-connection');
       console.log('✅ Backend connectivity test successful:', response);
       return { success: true, data: response, endpoint: '/setup/test-connection' };
     } catch (error) {
@@ -37,7 +37,7 @@ export const backendSetupService = {
       });
       
       // Use the new setup endpoint
-      const response = await api.post('/setup/initial-user', {
+      const response = await api.post('/api/setup/initial-user', {
         email: userData.email,
         password: userData.password,
         firstName: userData.firstName || 'Admin',
