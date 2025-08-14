@@ -641,7 +641,12 @@ const TicketDetails = () => {
               {ticket.location && (
                 <div className="flex items-center space-x-3">
                   <MapPinIcon className="w-5 h-5 text-gray-400" />
-                  <span className="text-gray-900">{ticket.location}</span>
+                  <span className="text-gray-900">
+                    {typeof ticket.location === 'string' 
+                      ? ticket.location 
+                      : `${ticket.location.address || ''} ${ticket.location.city || ''}, ${ticket.location.state || ''} ${ticket.location.country || ''}`.trim()
+                    }
+                  </span>
                 </div>
               )}
               

@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Navigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { EyeIcon, EyeSlashIcon, LockClosedIcon, UserIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, EyeSlashIcon, LockClosedIcon, UserIcon, WrenchScrewdriverIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button, Input, Card } from '../../components/common';
+import BackendSetup from '../../components/Admin/BackendSetup';
 import toast from 'react-hot-toast';
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [showBackendSetup, setShowBackendSetup] = useState(false);
   const { login, isAuthenticated, error, clearError } = useAuth();
   const location = useLocation();
   const { register, handleSubmit, formState: { errors } } = useForm();
@@ -72,7 +74,7 @@ const LoginPage = () => {
             <Input
               label="Email Address"
               type="email"
-              placeholder="admin@calltrackerprp.com"
+              placeholder="admin@calltrackerpro.com"
               icon={UserIcon}
               required
               error={errors.email?.message}
@@ -142,8 +144,46 @@ const LoginPage = () => {
             </Button>
           </form>
 
+          {/* Demo Credentials Notice */}
+          <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <h4 className="text-sm font-medium text-blue-800 mb-3">Available Demo Credentials</h4>
+            
+            <div className="space-y-2 mb-3">
+              <div className="bg-blue-100 p-2 rounded text-xs">
+                <div className="font-semibold text-blue-800 mb-1">Super Admin</div>
+                <div className="font-mono">admin@calltrackerpro.com / Admin@123</div>
+              </div>
+              
+              <div className="bg-blue-100 p-2 rounded text-xs">
+                <div className="font-semibold text-blue-800 mb-1">Manager</div>
+                <div className="font-mono">manager@demo.com / Manager@123</div>
+              </div>
+              
+              <div className="bg-blue-100 p-2 rounded text-xs">
+                <div className="font-semibold text-blue-800 mb-1">Agent</div>
+                <div className="font-mono">agent@demo.com / Agent@123</div>
+              </div>
+              
+              <div className="bg-blue-100 p-2 rounded text-xs">
+                <div className="font-semibold text-blue-800 mb-1">Legacy</div>
+                <div className="font-mono">anas@anas.com / password</div>
+              </div>
+            </div>
+            
+            <p className="text-xs text-blue-600 mb-2">
+              ✨ These demo accounts are now available in the live backend!
+            </p>
+            <button
+              onClick={() => setShowBackendSetup(true)}
+              className="w-full flex items-center justify-center space-x-2 px-3 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            >
+              <WrenchScrewdriverIcon className="w-4 h-4" />
+              <span>Create Custom Admin</span>
+            </button>
+          </div>
+
           {/* Security Notice */}
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
             <p className="text-xs text-gray-600 text-center">
               🔒 This is a secure admin area. Your login attempt will be logged for security purposes.
             </p>
@@ -165,6 +205,12 @@ const LoginPage = () => {
           </button>
         </motion.div>
       </motion.div>
+
+      {/* Backend Setup Modal */}
+      <BackendSetup 
+        isOpen={showBackendSetup} 
+        onClose={() => setShowBackendSetup(false)} 
+      />
     </div>
   );
 };

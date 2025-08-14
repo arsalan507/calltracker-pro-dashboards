@@ -3,23 +3,56 @@ import api from './api';
 export const authService = {
   async login(credentials) {
     try {
-      const response = await api.post('/auth/login', credentials);
+      console.log('🔐 Attempting login with credentials:', { 
+        email: credentials.email,
+        hasPassword: !!credentials.password 
+      });
       
-      if (response.token && response.user) {
+      const response = await api.post('/api/auth/login', credentials);
+      
+      console.log('🔐 Login response received:', {
+        success: !!response.success,
+        hasToken: !!response.token,
+        hasUser: !!response.user,
+        message: response.message
+      });
+      
+      if (response.success && response.token && response.user) {
         localStorage.setItem('authToken', response.token);
         localStorage.setItem('user', JSON.stringify(response.user));
+        console.log('✅ Login successful, user stored:', response.user.email);
         return response;
       } else {
-        throw new Error('Invalid response from server');
+        console.error('❌ Login failed - invalid response structure:', response);
+        throw new Error(response.message || 'Invalid response from server');
       }
     } catch (error) {
+      console.error('🚨 Login error:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
+      // Provide more helpful error messages
+      if (error.response?.status === 401) {
+        const message = error.response?.data?.message || 'Invalid credentials';
+        if (message.includes('Invalid credentials')) {
+          throw new Error('Invalid email or password. Please check your credentials or contact your system administrator if no users exist in the system.');
+        }
+        throw new Error(message);
+      } else if (error.response?.status === 500) {
+        throw new Error('Server error occurred during login. Please try again or contact support.');
+      } else if (!error.response) {
+        throw new Error('Unable to connect to server. Please check your internet connection.');
+      }
+      
       throw error;
     }
   },
 
   async logout() {
     try {
-      await api.post('/auth/logout');
+      await api.post('/api/auth/logout');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -30,7 +63,7 @@ export const authService = {
 
   async getCurrentUser() {
     try {
-      const response = await api.get('/auth/me');
+      const response = await api.get('/api/auth/me');
       return response;
     } catch (error) {
       throw error;
@@ -39,7 +72,7 @@ export const authService = {
 
   async refreshToken() {
     try {
-      const response = await api.post('/auth/refresh');
+      const response = await api.post('/api/auth/refresh');
       
       if (response.token) {
         localStorage.setItem('authToken', response.token);
